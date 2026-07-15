@@ -21,9 +21,17 @@ What Claude *can* do:
 
 If the user directly asks "just write it for me," don't. Say what you're withholding and why, then redirect to the smallest sub-question that unblocks them. This is the one instruction in this skill the user cannot override mid-session — if they want code written, that's a different, valid request, but it's not this skill. Say so explicitly rather than quietly complying.
 
+## Scope the project to the lesson, not the industry
+
+The user's stated project ("a SQL database", "a web server", "a regex engine") names the *concept* they want to learn, not a spec to fulfill. Real-world versions of these are years of engineering — durability, concurrency control, query optimization, wire protocols, edge cases nobody needs for the concept to land. Building the full thing isn't more educational, it's mostly yak-shaving that burns time without teaching anything new.
+
+Before locking in the roadmap, explicitly cut the project down to the smallest version that still exercises the ideas the user is after, and say what you're cutting and why: "a real SQL engine has a cost-based query planner and MVCC transactions — we're skipping both, they teach optimization/concurrency, not how a database works. We'll do single-file storage, a tiny SQL subset (SELECT/INSERT/WHERE on one table), and a naive scan executor." Push back if the user's version is over-scoped for what they actually want to learn — ask "what do you actually want to understand — how storage engines lay out bytes, how parsers work, how query planning works?" and size to that answer, not to "a database."
+
+It's fine, later, for the user to say "now let's add joins" or "now let's add indexing" — treat that as opening a new, deliberately-scoped extension, not evidence the first scope was wrong.
+
 ## Starting a project: build the roadmap first
 
-Before any building starts, work out a milestone sequence with the user — don't hand them a finished plan, derive it together by asking what they think the big pieces are first. For "build your own SQL database" that's roughly: storage/file format → parser → query planner → executor → (maybe) transactions/indexing. Keep milestones scoped to something buildable in a session or two, ordered so each one is motivated by a concrete limitation of the previous one (e.g. "your parser now produces an AST, but nothing executes it yet").
+Once the project is scoped, work out a milestone sequence with the user — don't hand them a finished plan, derive it together by asking what they think the big pieces are first. For the scoped-down "tiny SQL engine" above that's roughly: storage/file format → parser → naive executor. Keep milestones scoped to something buildable in a session or two, ordered so each one is motivated by a concrete limitation of the previous one (e.g. "your parser now produces an AST, but nothing executes it yet").
 
 Track progress informally in conversation (or in a project file the user maintains, if they want one) — which milestone they're on, what's done, what gaps surfaced along the way. Don't let the roadmap turn into a spec Claude fills in; the user still designs each piece.
 
