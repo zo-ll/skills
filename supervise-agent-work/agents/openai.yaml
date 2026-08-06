@@ -1,0 +1,4 @@
+interface:
+  display_name: "Supervise Agent Work"
+  short_description: "Delegate, review, and iterate in persistent panes"
+  default_prompt: "Use $supervise-agent-work to delegate this implementation in a persistent multiplexer, review it, and bring it to me only when ready."
