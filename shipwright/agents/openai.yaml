@@ -1,4 +1,4 @@
 interface:
   display_name: "Shipwright"
-  short_description: "Delegate, review, and iterate in persistent panes"
-  default_prompt: "Use $shipwright to delegate this implementation in a persistent multiplexer, review it, and bring it to me only when ready."
+  short_description: "Launch or attach to agents, then review their work"
+  default_prompt: "Use $shipwright to launch or attach to my coding agent in a persistent multiplexer, supervise and review it, and bring the work to me only when ready."

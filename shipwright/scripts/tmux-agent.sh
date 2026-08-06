@@ -10,6 +10,9 @@ usage:
   tmux-agent.sh start <session> <window> <cwd> <prompt> <log> -- <command> [args...]
   tmux-agent.sh status <session> <window> <log>
   tmux-agent.sh capture <session> <window> [lines]
+  tmux-agent.sh inspect <session:window.pane>
+  tmux-agent.sh capture-target <session:window.pane> [lines]
+  tmux-agent.sh prompt-target <session:window.pane> <prompt-file> <expected-command>
   tmux-agent.sh attach <session>
   tmux-agent.sh stop <session> [window]
 EOF
@@ -59,6 +62,41 @@ case "$action" in
 		[ "$#" -ge 2 ] && [ "$#" -le 3 ] || usage
 		lines="${3:-120}"
 		tmux capture-pane -p -S "-$lines" -t "$1:$2"
+		;;
+	inspect)
+		[ "$#" -eq 1 ] || usage
+		tmux display-message -p -t "$1" \
+			'session=#{session_name}
+window=#{window_name}
+pane=#{pane_index}
+target=#{session_name}:#{window_name}.#{pane_index}
+cwd=#{pane_current_path}
+command=#{pane_current_command}
+pid=#{pane_pid}
+dead=#{pane_dead}'
+		;;
+	capture-target)
+		[ "$#" -ge 1 ] && [ "$#" -le 2 ] || usage
+		lines="${2:-120}"
+		tmux capture-pane -p -S "-$lines" -t "$1"
+		;;
+	prompt-target)
+		[ "$#" -eq 3 ] || usage
+		target="$1"; prompt="$2"; expected="$3"
+		[ -f "$prompt" ] || { echo "tmux-agent.sh: prompt not found: $prompt" >&2; exit 2; }
+		current="$(tmux display-message -p -t "$target" '#{pane_current_command}')"
+		dead="$(tmux display-message -p -t "$target" '#{pane_dead}')"
+		[ "$dead" = "0" ] || { echo "tmux-agent.sh: target pane is dead: $target" >&2; exit 2; }
+		[ "$current" = "$expected" ] || {
+			echo "tmux-agent.sh: foreground command mismatch: expected $expected, found $current" >&2
+			exit 2
+		}
+		buffer="shipwright-prompt-$$"
+		trap 'tmux delete-buffer -b "$buffer" 2>/dev/null || true' EXIT
+		tmux load-buffer -b "$buffer" "$prompt"
+		tmux paste-buffer -d -b "$buffer" -t "$target"
+		tmux send-keys -t "$target" Enter
+		printf 'prompted=%s\ncommand=%s\n' "$target" "$current"
 		;;
 	attach)
 		[ "$#" -eq 1 ] || usage

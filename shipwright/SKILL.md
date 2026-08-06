@@ -1,19 +1,21 @@
 ---
 name: shipwright
-description: Delegate implementation, debugging, refactoring, testing, or documentation work to another coding-agent CLI inside a persistent Herdr workspace or tmux session, then independently review and iterate on its work before asking the user to review. Use when the user asks the main agent to hand work to Claude, Codex, or another agent; requests a supervised subagent, reviewer loop, persistent pane, worktree workflow, tmux/Herdr orchestration, or asks the main agent to manage implementation rather than perform it directly.
+description: Delegate implementation, debugging, refactoring, testing, or documentation work to a new coding-agent CLI or attach to a running user-specified agent inside Herdr or tmux, then independently review and iterate before asking the user to review. Use when the user asks the main agent to hand work to Claude, Codex, or another agent; adopt or supervise an existing agent session; requests a reviewer loop, persistent pane, worktree workflow, tmux/Herdr orchestration; or asks the main agent to manage implementation rather than perform it directly.
 ---
 
 # Shipwright
 
-Run one worker in an isolated Git worktree and a persistent multiplexer. Remain the accountable lead: specify the task, monitor it, review the diff and tests independently, send corrections until it passes, then ask the user to review before integration.
+Supervise one worker in a persistent multiplexer. Either launch it in an isolated Git worktree or attach to the exact running agent named by the user. Remain the accountable lead: establish the task, monitor it, review the diff and tests independently, send corrections until it passes, then ask the user to review before integration.
 
 ## Non-negotiable contract
 
 - Always create a visible persistent workspace or session. Do not use an invisible built-in subagent as the only worker.
+- When the user specifies a running Herdr agent or tmux target, attach to that target instead of spawning a replacement. Do not silently select a different session.
 - Prefer Herdr when installed; otherwise use tmux. Never nest Herdr and tmux for the same worker.
 - Treat the worker as untrusted until its output, diff, tests, and claims are verified.
-- Keep worker changes isolated from the user's active checkout with a Git worktree unless the user explicitly requires the same worktree.
+- For a new worker, keep changes isolated from the user's active checkout with a Git worktree unless the user explicitly requires the same worktree. For an attached worker, adopt its existing checkout after reporting its path, branch, and dirty state; never move it into a new worktree.
 - Do not merge, cherry-pick, push, delete the worktree, or close the review workspace before user review unless the user already authorized that exact action.
+- Treat an attached agent, pane, session, and checkout as user-owned. Never restart, kill, close, rename, or clean them up unless the user explicitly requests it.
 - Ask the user to review only after the parent review gate passes. If it does not pass, return the work to the worker with concrete evidence.
 - Preserve the session and worktree while the user reviews so they can inspect or attach.
 
@@ -22,16 +24,54 @@ Run one worker in an isolated Git worktree and a persistent multiplexer. Remain 
 1. Read repository instructions, the relevant specification/ticket, current status, and existing tests.
 2. Establish one bounded deliverable and its acceptance checks. Delegate only work authorized by the user.
 3. Inspect the active worktree for unrelated changes. Never absorb them into the worker branch.
-4. Choose a short task ID and create `agent/<task-id>` from the intended base:
+4. Choose the operating mode:
+
+   - **Attach:** require the exact Herdr agent name or tmux target from the user. Resolve it, capture its current state, and verify its checkout before sending input. If the identifier is missing or ambiguous, ask instead of guessing.
+   - **Launch:** choose a short task ID and create `agent/<task-id>` from the intended base:
 
 ```bash
 scripts/worktree.sh create "$REPO" "$TASK_ID" "$BASE_REF"
 ```
 
-5. Create a task prompt outside the repository. Use the contract in [references/task-contract.md](references/task-contract.md). Include absolute paths to the isolated worktree and relevant source files.
+5. Create a task prompt outside the repository. Use the contract in [references/task-contract.md](references/task-contract.md). In attach mode, account for work already performed and avoid reissuing completed work. Include the resolved checkout and relevant source paths.
 6. Read [references/multiplexers.md](references/multiplexers.md), then select Herdr or tmux. Read [references/harnesses.md](references/harnesses.md) for the selected agent CLI.
 
-## Launch the worker
+## Attach to a running worker
+
+Use this path whenever the user supplies an existing target. Do not also launch a worker.
+
+### Existing Herdr agent
+
+Resolve the exact agent name and inspect it before prompting:
+
+```bash
+scripts/herdr-agent.sh status "$AGENT_NAME"
+scripts/herdr-agent.sh read "$AGENT_NAME" 160
+```
+
+From Herdr's returned agent, pane, and workspace data, determine the checkout path. In that checkout inspect `git status`, branch, remotes, instructions, and current diff. Confirm that the observed repository is the one in scope. Use `scripts/herdr-agent.sh prompt` for the assignment or correction only after reading the current transcript and lifecycle state.
+
+### Existing tmux agent
+
+Use the exact `session:window.pane` supplied by the user:
+
+```bash
+scripts/tmux-agent.sh inspect "$TMUX_TARGET"
+scripts/tmux-agent.sh capture-target "$TMUX_TARGET" 160
+```
+
+Verify the reported pane command, PID, cwd, repository, branch, dirty state, and visible transcript. Refuse to type into a shell, editor, test process, or ambiguous pane. When the pane is visibly waiting for agent input, paste a prompt while requiring the expected foreground command:
+
+```bash
+scripts/tmux-agent.sh prompt-target \
+  "$TMUX_TARGET" "$PROMPT_FILE" "$EXPECTED_AGENT_COMMAND"
+```
+
+Create a separate review window in the same tmux session when useful, but do not replace or rename the user's agent window. Because an attached turn lacks Shipwright's exit marker, determine settlement from the agent UI/transcript plus repository activity; never infer correctness from apparent idleness.
+
+After attaching, continue at [Supervise without taking over](#supervise-without-taking-over).
+
+## Launch a new worker
 
 ### Herdr preferred
 
@@ -110,7 +150,7 @@ Only after the parent gate passes, ask the user to review. Provide:
 
 - concise outcome and behavior;
 - isolated branch and worktree path;
-- Herdr workspace/agent or tmux attach command;
+- Herdr workspace/agent or exact tmux attach target;
 - changed-file and architecture summary;
 - verification commands and results;
 - known non-blocking risks or design questions; and
@@ -122,5 +162,5 @@ Do not imply integration already occurred. Keep the multiplexer and worktree ali
 
 - On requested changes, send a new prompt to the same Herdr agent or a new tmux correction window, then repeat the parent gate.
 - On approval, integrate only through the repository's preferred process and only with user authorization.
-- After integration is verified, close the workspace/session and remove the worktree with `scripts/worktree.sh remove`. The removal script refuses dirty worktrees.
+- After integration is verified, close a Shipwright-created workspace/session and remove its worktree with `scripts/worktree.sh remove`. The removal script refuses dirty worktrees. Leave attached user-owned agents, panes, sessions, and checkouts running and intact unless the user explicitly asks to close them.
 - Retain task prompts, logs, and review evidence until integration is complete; then remove temporary state deliberately.

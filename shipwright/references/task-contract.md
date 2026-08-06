@@ -8,8 +8,8 @@ Write every worker prompt with these sections:
 ## Goal
 One observable outcome.
 
-## Worktree
-Absolute isolated-worktree path and branch.
+## Workspace
+Absolute checkout path and branch. State whether Shipwright launched the worker or attached to the user-owned agent target. For attach mode, summarize relevant work already present and preserve unrelated changes.
 
 ## Read first
 Repository instructions, specification/ticket, relevant source and tests.
@@ -24,7 +24,7 @@ Explicit scope exclusions and prohibited actions.
 Exact checks the worker must run, plus any manual scenario.
 
 ## Handoff
-Report changed files, behavior, tests with results, risks, and deviations. Do not merge, push, or delete the worktree. If the terminal transcript may be incomplete, write the report to the supplied handoff path.
+Report changed files, behavior, tests with results, risks, and deviations. Do not merge, push, delete the checkout, or close the multiplexer. If the terminal transcript may be incomplete, write the report to the supplied handoff path.
 ```
 
 The worker may choose implementation details within the contract. Require it to inspect facts rather than ask the parent questions answerable from the repository. Require it to stop before materially expanding scope.

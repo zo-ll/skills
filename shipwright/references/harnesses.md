@@ -26,6 +26,8 @@ herdr agent prompt worker "$(cat "$PROMPT_FILE")"
 
 Install the matching Herdr integration when available for stronger session/state reporting, but do not treat integration status as task correctness.
 
+For an existing Herdr agent, do not run `agent start`. Inspect it with `agent get` and `agent read`, then use `agent prompt` to preserve the current conversation.
+
 ## tmux noninteractive adapter
 
 The bundled tmux runner passes the prompt on stdin. Supply the harness executable and arguments as separate shell arguments after `--`.
@@ -38,6 +40,17 @@ Codex:       codex exec -
 ```
 
 For a custom harness, create a small executable wrapper that reads stdin as the prompt, performs one agent turn, writes its answer to stdout, and exits with the true result code. Pass the wrapper path as the harness command. Do not embed complex quoting or secrets in a command string.
+
+## Attached interactive adapter
+
+An existing tmux pane may contain an interactive Claude, Codex, Gemini, Cursor, OpenCode, or custom agent. Inspect the pane rather than assuming its harness from the session name. Before pasting a task or correction:
+
+1. Match `pane_current_command` to the user-specified agent executable.
+2. Capture the pane and verify that the agent is waiting for input, not approving a command, editing text, or streaming output.
+3. Use the bundled `prompt-target` action, which refuses a foreground-command mismatch and pastes the prompt as data rather than shell syntax.
+4. Capture the pane again to verify that the prompt reached the intended agent.
+
+If the CLI does not accept multiline pasted input safely, ask the user to submit the prepared prompt manually. Never fall back to typing an escaped shell command into the pane.
 
 ## Permissions
 
