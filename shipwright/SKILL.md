@@ -1,9 +1,9 @@
 ---
-name: supervise-agent-work
+name: shipwright
 description: Delegate implementation, debugging, refactoring, testing, or documentation work to another coding-agent CLI inside a persistent Herdr workspace or tmux session, then independently review and iterate on its work before asking the user to review. Use when the user asks the main agent to hand work to Claude, Codex, or another agent; requests a supervised subagent, reviewer loop, persistent pane, worktree workflow, tmux/Herdr orchestration, or asks the main agent to manage implementation rather than perform it directly.
 ---
 
-# Supervise Agent Work
+# Shipwright
 
 Run one worker in an isolated Git worktree and a persistent multiplexer. Remain the accountable lead: specify the task, monitor it, review the diff and tests independently, send corrections until it passes, then ask the user to review before integration.
 
