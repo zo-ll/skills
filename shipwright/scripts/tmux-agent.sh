@@ -13,6 +13,7 @@ usage:
   tmux-agent.sh inspect <session:window.pane>
   tmux-agent.sh capture-target <session:window.pane> [lines]
   tmux-agent.sh prompt-target <session:window.pane> <prompt-file> <expected-command>
+  tmux-agent.sh interrupt-target <session:window.pane> <expected-command>
   tmux-agent.sh attach <session>
   tmux-agent.sh stop <session> [window]
 EOF
@@ -97,6 +98,19 @@ dead=#{pane_dead}'
 		tmux paste-buffer -d -b "$buffer" -t "$target"
 		tmux send-keys -t "$target" Enter
 		printf 'prompted=%s\ncommand=%s\n' "$target" "$current"
+		;;
+	interrupt-target)
+		[ "$#" -eq 2 ] || usage
+		target="$1"; expected="$2"
+		current="$(tmux display-message -p -t "$target" '#{pane_current_command}')"
+		dead="$(tmux display-message -p -t "$target" '#{pane_dead}')"
+		[ "$dead" = "0" ] || { echo "tmux-agent.sh: target pane is dead: $target" >&2; exit 2; }
+		[ "$current" = "$expected" ] || {
+			echo "tmux-agent.sh: foreground command mismatch: expected $expected, found $current" >&2
+			exit 2
+		}
+		tmux send-keys -t "$target" C-c
+		printf 'interrupted=%s\ncommand=%s\n' "$target" "$current"
 		;;
 	attach)
 		[ "$#" -eq 1 ] || usage

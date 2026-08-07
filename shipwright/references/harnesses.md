@@ -52,6 +52,20 @@ An existing tmux pane may contain an interactive Claude, Codex, Gemini, Cursor, 
 
 If the CLI does not accept multiline pasted input safely, ask the user to submit the prepared prompt manually. Never fall back to typing an escaped shell command into the pane.
 
+### Usage and quota checks
+
+Inspect the installed harness and its interactive help rather than assuming a status command. Run checks only at an idle prompt so they cannot corrupt input or interrupt a tool call.
+
+- Claude Code: prefer the interactive `/usage` status surface when present. Record remaining quota/credits and reset time shown by the UI.
+- Other harnesses: use their documented local status or usage surface. If none exists, rely only on explicit UI warnings or user-provided provider data and label the result unknown.
+- Never ask the coding model to estimate its own provider usage.
+
+Usage checks do not prove task completion. Likewise, lifecycle state does not prove budget availability.
+
+### Interrupting without destroying context
+
+An explicit user stop request means cancel the active turn and stop sending prompts. Preserve the interactive process and conversation unless the user also asks to close them. With tmux, use `interrupt-target` after verifying the exact target and expected executable. With Herdr, use only an interrupt primitive confirmed by the installed CLI help; do not use workspace close, agent deletion, or pane destruction as a substitute.
+
 ## Permissions
 
 Use the narrowest noninteractive permission mode that can complete the task. Never enable blanket external-network, destructive, or home-directory access merely to avoid an approval. If the worker needs new authority, let it become blocked and surface the exact request to the parent or user.

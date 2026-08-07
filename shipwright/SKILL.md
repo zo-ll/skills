@@ -11,18 +11,21 @@ Supervise one worker in a persistent multiplexer. Either launch it in an isolate
 
 - Always create a visible persistent workspace or session. Do not use an invisible built-in subagent as the only worker.
 - When the user specifies a running Herdr agent or tmux target, attach to that target instead of spawning a replacement. Do not silently select a different session.
+- Keep every implementation prompt and correction in that attached agent. A separate window may host review commands, previews, or logs, but never a replacement worker or a fresh conversation unless the user explicitly asks for one.
 - Prefer Herdr when installed; otherwise use tmux. Never nest Herdr and tmux for the same worker.
 - Treat the worker as untrusted until its output, diff, tests, and claims are verified.
 - For a new worker, keep changes isolated from the user's active checkout with a Git worktree unless the user explicitly requires the same worktree. For an attached worker, adopt its existing checkout after reporting its path, branch, and dirty state; never move it into a new worktree.
 - Do not merge, cherry-pick, push, delete the worktree, or close the review workspace before user review unless the user already authorized that exact action.
 - Treat an attached agent, pane, session, and checkout as user-owned. Never restart, kill, close, rename, or clean them up unless the user explicitly requests it.
 - Ask the user to review only after the parent review gate passes. If it does not pass, return the work to the worker with concrete evidence.
+- Do not implement the worker's fixes yourself while operating Shipwright. Return review findings and user feedback to the same worker unless the user explicitly changes the delegation arrangement.
 - Preserve the session and worktree while the user reviews so they can inspect or attach.
 
 ## Preflight
 
 1. Read repository instructions, the relevant specification/ticket, current status, and existing tests.
 2. Establish one bounded deliverable and its acceptance checks. Delegate only work authorized by the user.
+   Record any provider quota, credit budget, reset time, deadline, or user-requested stop threshold. Treat these as execution constraints, not implementation requirements.
 3. Inspect the active worktree for unrelated changes. Never absorb them into the worker branch.
 4. Choose the operating mode:
 
@@ -70,6 +73,26 @@ scripts/tmux-agent.sh prompt-target \
 Create a separate review window in the same tmux session when useful, but do not replace or rename the user's agent window. Because an attached turn lacks Shipwright's exit marker, determine settlement from the agent UI/transcript plus repository activity; never infer correctness from apparent idleness.
 
 After attaching, continue at [Supervise without taking over](#supervise-without-taking-over).
+
+## Usage budget and stop control
+
+Keep worker progress, provider usage, and process lifecycle as three separate signals. An idle agent can still be near its quota; an active agent may be making no useful progress.
+
+- Check usage at attachment/launch, before each correction turn, after a substantial worker turn, and roughly every 10–15 minutes during long runs when the provider exposes a usage surface. Also check immediately when the transcript shows a quota, credit, context, or reset warning.
+- Query usage only while an interactive worker is visibly waiting for input. Use the installed harness's documented non-generative status command; for Claude Code, use `/usage` when the installed interactive version provides it. Capture the result and reset time. If no reliable usage command exists, report usage as unknown—never imply it was checked.
+- Do not spend a worker turn merely to ask the model about its own token count. Provider UI/status output is authoritative; model estimates are not.
+- When a limit is close, avoid opening a broad correction turn. Ask the worker for a concise handoff/checkpoint if that can be done safely, then perform parent-side review and tell the user what remains.
+- When a limit is reached, stop prompting. Preserve the checkout, transcript, and exact next prompt so work can resume after reset.
+- When the user says stop, interrupt the current generation/tool turn immediately and suspend worker prompting. Do not interpret this as permission to kill the attached pane, agent process, session, or checkout.
+
+For an attached tmux worker, verify the target and foreground command, interrupt the active turn in place, then capture the pane until it is visibly idle:
+
+```bash
+scripts/tmux-agent.sh interrupt-target "$TMUX_TARGET" "$EXPECTED_AGENT_COMMAND"
+scripts/tmux-agent.sh capture-target "$TMUX_TARGET" 80
+```
+
+For Herdr, inspect the installed CLI help and use its agent/pane-level interrupt operation if available. Never substitute workspace closure for turn interruption. If the installed version has no safe interrupt primitive, state that limitation and ask the user to interrupt from their attached UI.
 
 ## Launch a new worker
 
@@ -121,8 +144,10 @@ tmux attach-session -t "$SESSION"
 
 - Confirm launch immediately and verify the worker is running.
 - Poll state or output in intervals no longer than 60 seconds while actively waiting. Send concise progress updates to the user.
+- At the usage checkpoints above, capture quota state without disrupting an active turn. Stop before the user-defined threshold rather than consuming the remaining budget speculatively.
 - If the worker is blocked, read the actual prompt. Answer only decisions already authorized by the user; otherwise surface the question to the user.
 - Do not edit the worker's files to rescue it while it is running. Give it the missing context or stop and restart deliberately.
+- Route user design feedback and parent review findings back into the same attached conversation. Do not create a new worker window for follow-ups merely to obtain cleaner logs.
 - Require a final handoff containing changed files, behavior, tests run, remaining risks, and any deviations from the task.
 - For full-screen agents whose transcript is incomplete, instruct the worker to write its handoff to the task state directory, then read that file directly.
 
@@ -133,6 +158,7 @@ After the worker settles, review from source—not just its summary:
 1. Inspect `git status`, the complete diff, untracked files, and commit history in the worktree.
 2. Re-read the acceptance contract and map every requirement to evidence.
 3. Run proportionate formatting, static checks, unit tests, integration tests, and focused manual checks independently.
+   Run preview servers and interactive inspection in a separate review window, never in the worker's pane. Keep implementation prompts in the original attached conversation.
 4. Review architecture, domain semantics, error handling, security, compatibility, migrations, documentation, and unrelated changes.
 5. Check that tests fail for the intended reason before the fix when feasible, and that they cover meaningful behavior rather than implementation trivia.
 6. Verify the worker did not weaken tests, hide failures, change scope, leak secrets, or leave generated/temp artifacts.

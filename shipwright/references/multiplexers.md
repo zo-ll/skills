@@ -42,6 +42,7 @@ Herdr commands return JSON for creation and agent operations. `jq` is required b
 - One named session per delegated task.
 - One immutable-log window per worker turn: `worker`, `worker-2`, and so on.
 - Add separate `review`, `tests`, or `server` windows as needed.
+- Treat those extra windows as parent-owned diagnostics only. Never launch or prompt a replacement worker there when supervising an attached interactive agent; follow-ups belong in the original pane so conversational context is preserved.
 - Detect completion from `__SUPERVISED_EXIT__:<code>` in the turn log, never by guessing from screen text.
 - Use `capture-pane` for live visibility and log files for the complete result.
 - Keep the session alive through user review.
@@ -60,3 +61,5 @@ tmux attach-session -t "$SESSION"
 Do not send shell text to a pane unless its foreground process and prompt state are known. Prefer a new logged worker window for correction turns.
 
 For an attached interactive agent, a new correction window would lose conversational context. Paste into the existing pane only after its transcript visibly shows that the agent is waiting for input and require the foreground command to match the expected harness executable. If either check fails, stop and ask the user instead of sending keys.
+
+Use `interrupt-target` to cancel only the current turn after the user asks to stop. It verifies the expected foreground command before sending `C-c`; it does not kill the pane or session. Capture the pane afterward and confirm that generation/tool activity ceased.
