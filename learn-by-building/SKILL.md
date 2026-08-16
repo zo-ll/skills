@@ -23,6 +23,19 @@ What the agent *can* do:
 
 If the user directly asks "just write it for me," don't. Say what you're withholding and why, then redirect to the smallest sub-question that unblocks them. This is the one instruction in this skill the user cannot override mid-session — if they want code written, that's a different, valid request, but it's not this skill. Say so explicitly rather than quietly complying.
 
+## Concept pages: teaching a feature
+
+When the user needs a language feature — a syntax form, a type, a library function — teach it as a **concept page**: a compact, man-page-style reference card the user consults and then applies. It is the structured form of the "tiny isolated syntax examples" above, with the same boundary: the page teaches the feature, never the user's solution.
+
+    NAME          what the feature is called
+    SYNTAX        the form itself, annotated
+    DESCRIPTION   a few sentences: what it is, when it's used
+    RULES         the constraints that trip people up
+    EXAMPLES      tiny generic examples (a Person record, a traffic light) — never the user's actual problem
+    SEE ALSO      related features already taught, or coming next
+
+Keep the page consultable — the user should be able to write their own code with it open — then hand the task back: "write your version, using the page." The page carries the syntax; the user still designs and types every line. Use a concept page for language-mechanics gaps (the fast teaching lane from "Assess proficiency"); keep the full Socratic ladder for conceptual gaps.
+
 ## Assess proficiency before starting
 
 Before scoping or roadmapping, find out what the user actually knows. Don't infer it from job title or years of experience — "3 years as a dev" says nothing about fluency in the target language, and unfamiliarity with the language says nothing about unfamiliarity with the concept. These are separate axes; ask short, concrete questions for each rather than doing a resume review:
@@ -49,7 +62,12 @@ It's fine, later, for the user to say "now let's add joins" or "now let's add in
 
 Once the project is scoped, work out a milestone sequence with the user — don't hand them a finished plan, derive it together by asking what they think the big pieces are first. For the scoped-down "tiny SQL engine" above that's roughly: storage/file format → parser → naive executor. Keep milestones scoped to something buildable in a session or two, ordered so each one is motivated by a concrete limitation of the previous one (e.g. "your parser now produces an AST, but nothing executes it yet").
 
-Track progress informally in conversation (or in a project file the user maintains, if they want one) — which milestone they're on, what's done, what gaps surfaced along the way. Don't let the roadmap turn into a spec the agent fills in; the user still designs each piece.
+Track progress in a **memory file the agent maintains**: a hidden `.PROGRESS.md` in the project root, written or updated by the agent at milestone ends and at session end. It is the *one* file the agent writes — documentation, never project code. Two sections:
+
+- **Overall** — what was decided at the start: the learner's goal and background, the scoped-down project and deliberate cuts, the milestone roadmap, and tooling/environment decisions.
+- **Progress** — current milestone, what's done, what's next, gaps that surfaced, and lessons learned so far.
+
+A fresh session reads `.PROGRESS.md` plus the project files before continuing, and re-quizzes briefly (see Checkpoints). The memory file records decisions, never answers — the user still designs each piece.
 
 ## Filling gaps, Socratically
 
@@ -76,7 +94,7 @@ At the end of each milestone, quiz before moving on — a couple of questions th
 
 The user works in a tmux split — vim in one pane editing the project, the agent running in the other. Treat that split as load-bearing, not incidental: it's what keeps "the user types every line" true at the tool level, not just as a rule the agent follows by choice.
 
-- **Never use a file-editing tool (whatever your harness calls it — edit, write, apply_patch, str_replace, etc.) on the user's project files.** There's no legitimate reason to under this skill — the vim pane is the only place source changes happen. If a change is needed, describe it and let the user make it in vim.
+- **Never use a file-editing tool (whatever your harness calls it — edit, write, apply_patch, str_replace, etc.) on the user's project files — the single exception is the `.PROGRESS.md` memory file (see "Starting a project"), which the agent maintains.** There's no other legitimate reason to under this skill — the vim pane is the only place source changes happen. If a change is needed, describe it and let the user make it in vim.
 - Use your file-reading tool to look at current file state before commenting on it — the user is editing live in the other pane, so re-read rather than trusting anything seen earlier in the conversation.
 - Use your shell/command-execution tool for everything that isn't editing: running the build, the test suite, a linter, a REPL, `git diff` to see what changed since last checkpoint. Reporting real output (compiler errors, stack traces, failing assertions) is the highest-value thing the agent can do in this setup — it's the feedback loop that lets the user debug their own code.
 - If the loop is slow (switching panes to rerun a command after every edit), suggest a watcher the user sets up themselves (`entr`, `cargo watch`, `nodemon`, a Makefile `watch` target) rather than the agent polling the filesystem to simulate one.
