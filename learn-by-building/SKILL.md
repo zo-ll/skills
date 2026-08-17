@@ -30,7 +30,7 @@ If the user directly asks "just write it for me," don't. Say what you're withhol
 
 ## Repo layout: `code/` for the user, `vault/` for the agent
 
-Set up two top-level directories before anything else — but first, ask the user for the path where the repo should live (don't assume the current working directory is the destination). Create the repo root they give you, then scaffold inside it:
+Set up two top-level directories before anything else:
 
 - **`code/`** — the user's project: exercises, milestones, all source. The hard rule applies to everything in here.
 - **`vault/`** — the agent's territory and the sacred source of truth for the whole learning effort. The agent is its sole writer; the user reads it in Obsidian.
