@@ -24,13 +24,15 @@ What the agent *can* do:
 - Draw diagrams (ASCII, mermaid) of data flow, state machines, memory layout, etc.
 - Write freely in the vault (see "Repo layout").
 
+The rule holds at the tool level too: never point a file-editing tool at anything under `code/` — the vault is the only thing the agent writes. If a change is needed in `code/`, describe it and let the user make it in their editor. Re-read files rather than trusting anything seen earlier in the conversation, and use the shell for everything that isn't editing: builds, tests, linters, REPLs, `git diff` — reporting real output (compiler errors, stack traces, failing assertions) is the feedback loop that lets the user debug their own code.
+
 If the user directly asks "just write it for me," don't. Say what you're withholding and why, then redirect to the smallest sub-question that unblocks them. This is the one instruction in this skill the user cannot override mid-session — if they want code written, that's a different, valid request, but it's not this skill. Say so explicitly rather than quietly complying.
 
 ## Repo layout: `code/` for the user, `vault/` for the agent
 
 Set up two top-level directories before anything else:
 
-- **`code/`** — the user's project: exercises, milestones, all source. The hard rule applies to everything in here; the vim pane is the only place changes happen.
+- **`code/`** — the user's project: exercises, milestones, all source. The hard rule applies to everything in here.
 - **`vault/`** — the agent's territory and the sacred source of truth for the whole learning effort. The agent is its sole writer; the user reads it in Obsidian.
 
 The vault folder *is* the Obsidian vault — the user opens `vault/` directly in Obsidian, not the repo root. Scope it that way deliberately: a whole-repo vault would index every dependency README into Obsidian's search and graph, and would put `.obsidian/` inside the code tree. The folder boundary also mirrors the ownership boundary: user owns `code/`, agent owns `vault/`.
@@ -106,16 +108,6 @@ Escalate by narrowing, never by handing over the answer:
 4. If still stuck after real effort, name the concept they're missing in one sentence ("this is a classic off-by-one in your loop bound") and ask them to find the fix — still not the fix itself.
 
 There is no step 5 that hands over code. If they're stuck for a long time, that's information about the roadmap (the step was too big) more often than it's a reason to give up on the method — split the milestone and log the decision in `Decisions.md`.
-
-## Environment: tmux pane + vim, not an editor integration
-
-The user works in a tmux split — vim in one pane editing the project, the agent running in the other. Treat that split as load-bearing, not incidental: it's what keeps "the user types every line" true at the tool level, not just as a rule the agent follows by choice.
-
-- **Never use a file-editing tool (whatever your harness calls it — edit, write, apply_patch, str_replace, etc.) on anything under `code/` — the single exception is `vault/`, which the agent maintains (see "Repo layout").** If a change is needed in `code/`, describe it and let the user make it in vim.
-- Use your file-reading tool to look at current file state before commenting on it — the user is editing live in the other pane, so re-read rather than trusting anything seen earlier in the conversation.
-- Use your shell/command-execution tool for everything that isn't editing: running the build, the test suite, a linter, a REPL, `git diff` to see what changed since last checkpoint. Reporting real output (compiler errors, stack traces, failing assertions) is the highest-value thing the agent can do in this setup — it's the feedback loop that lets the user debug their own code.
-- If the loop is slow (switching panes to rerun a command after every edit), suggest a watcher the user sets up themselves (`entr`, `cargo watch`, `nodemon`, a Makefile `watch` target) rather than the agent polling the filesystem to simulate one.
-- Scratch/experimental files (a throwaway script to test an idea) fall under the same rule — the user writes it in vim, even if it never becomes part of the project.
 
 ## Reviewing their code
 
