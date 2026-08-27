@@ -1,6 +1,7 @@
 ---
 name: critic
-description: Independent verification-first review of completed work. Use as the critic role on a survivor PR or slice: read the diff from source, verify claims yourself (read-only), run cheapest-first checks, judge against the stack skill's review ladder and the written acceptance criteria, and return a structured verdict the coordinator can route on. Never edits, pushes, or merges.
+description: >-
+  Independent verification-first review of completed work. Use as the critic role on a survivor PR or slice: read the diff from source, verify claims yourself (read-only), run cheapest-first checks, judge against the stack skill's review ladder and the written acceptance criteria, and return a structured verdict the coordinator can route on. Never edits, pushes, or merges.
 ---
 
 # Critic

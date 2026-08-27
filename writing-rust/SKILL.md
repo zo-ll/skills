@@ -1,6 +1,7 @@
 ---
 name: writing-rust
-description: Write or review clean, maintainable Rust using lessons from ripgrep, serde, tokio, rust-analyzer, and the official Rust docs and clippy lints. Use for Rust programs and libraries: ownership and borrowing, type-driven design, error handling, iterators, traits, unsafe, async, performance-sensitive code, testing, and Rust code review.
+description: >-
+  Write or review clean, maintainable Rust using lessons from ripgrep, serde, tokio, rust-analyzer, and the official Rust docs and clippy lints. Use for Rust programs and libraries: ownership and borrowing, type-driven design, error handling, iterators, traits, unsafe, async, performance-sensitive code, testing, and Rust code review.
 ---
 
 # Writing Rust

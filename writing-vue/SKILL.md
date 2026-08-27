@@ -1,6 +1,7 @@
 ---
 name: writing-vue
-description: Write or review clean, maintainable Vue 3 using lessons from vuejs/core, VueUse, Element Plus, Directus, koel, and the official Vue docs and style guide. Use for Vue applications and components: composition API, components, props and events, state, templates and styles, forms, performance, testing, and Vue code review. Pairs with writing-laravel for Laravel + Vue applications.
+description: >-
+  Write or review clean, maintainable Vue 3 using lessons from vuejs/core, VueUse, Element Plus, Directus, koel, and the official Vue docs and style guide. Use for Vue applications and components: composition API, components, props and events, state, templates and styles, forms, performance, testing, and Vue code review. Pairs with writing-laravel for Laravel + Vue applications.
 ---
 
 # Writing Vue

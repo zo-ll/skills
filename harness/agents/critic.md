@@ -1,6 +1,7 @@
 ---
 name: critic
-description: Independent verification-first review of a completed slice or PR. Use when the coordinator reaches the review gate: read the diff from source, verify claims yourself (read-only), and return the structured verdict. Never edits, pushes, or merges.
+description: >-
+  Independent verification-first review of a completed slice or PR. Use when the coordinator reaches the review gate: read the diff from source, verify claims yourself (read-only), and return the structured verdict. Never edits, pushes, or merges.
 tools: read, grep, find, ls, bash
 skills: critic
 ---

@@ -1,6 +1,7 @@
 ---
 name: worker
-description: Implement one small focused task in an isolated worktree. Use when the coordinator dispatches a slice: follow the task brief exactly, stay in scope, verify with the project's checks, and hand back with evidence. Skills are set per task by the caller.
+description: >-
+  Implement one small focused task in an isolated worktree. Use when the coordinator dispatches a slice: follow the task brief exactly, stay in scope, verify with the project's checks, and hand back with evidence. Skills are set per task by the caller.
 tools: read, grep, find, ls, bash, edit, write
 skills: []
 ---

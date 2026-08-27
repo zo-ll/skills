@@ -1,6 +1,7 @@
 ---
 name: writing-go
-description: Write or review clean, maintainable Go using lessons from the Go standard library, etcd, prometheus, caddy, and the official Go docs and style guides. Use for Go programs and packages: structure, naming, error handling, concurrency, interfaces, the standard library, testing, performance-sensitive code, and Go code review.
+description: >-
+  Write or review clean, maintainable Go using lessons from the Go standard library, etcd, prometheus, caddy, and the official Go docs and style guides. Use for Go programs and packages: structure, naming, error handling, concurrency, interfaces, the standard library, testing, performance-sensitive code, and Go code review.
 ---
 
 # Writing Go

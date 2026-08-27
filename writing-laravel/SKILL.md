@@ -1,6 +1,7 @@
 ---
 name: writing-laravel
-description: Write or review clean, maintainable Laravel using lessons from laravel/framework, the first-party packages (Horizon, Telescope, Cashier, Fortify), Spatie tools, real Laravel applications (Monica, koel), and the official Laravel docs. Use for Laravel applications and packages: routing and controllers, validation, authorization, Eloquent, databases, queues, Blade, testing, and Laravel code review.
+description: >-
+  Write or review clean, maintainable Laravel using lessons from laravel/framework, the first-party packages (Horizon, Telescope, Cashier, Fortify), Spatie tools, real Laravel applications (Monica, koel), and the official Laravel docs. Use for Laravel applications and packages: routing and controllers, validation, authorization, Eloquent, databases, queues, Blade, testing, and Laravel code review.
 ---
 
 # Writing Laravel
