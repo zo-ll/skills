@@ -30,3 +30,30 @@ After cloning or adding a new skill:
 The script only touches what it owns: existing symlinks to this repo are left
 alone, identical copies are replaced, and divergent copies are skipped with a
 warning. It is safe to run repeatedly.
+
+## Bootstrapping a new machine
+
+One command makes every resource in this repo live on a fresh machine:
+
+```sh
+git clone https://github.com/zo-ll/skills.git
+cd skills
+./bin/bootstrap.sh      # skills into all harnesses + pi extension & agents
+```
+
+Bootstrap links the skills into every harness skill dir, symlinks the
+`subagent` extension into `~/.pi/agent/extensions/`, and the `worker`/`critic`
+agents into `~/.pi/agent/agents/` - all as symlinks to this repo, so edits here
+stay live everywhere. After it runs, restart pi or run `/reload` inside it.
+
+Keep the clone in place: the symlinks point at it. If you move it, re-run
+bootstrap. Installing a new harness later? Re-run bootstrap so the new harness
+gets the skills too.
+
+The subagent tool spawns workers and critics with scoped skill manifests, so a
+worker only sees the skills named per task:
+
+```
+{ agent: "worker", task: <brief>, skills: ["writing-laravel", "writing-vue"], cwd: <worktree> }
+{ agent: "critic",  task: <brief>, skills: ["critic", "writing-laravel"],  cwd: <worktree> }
+```
