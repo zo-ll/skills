@@ -59,7 +59,7 @@ Then publish one issue per slice, **in dependency order (blockers first)**, so b
 - **GitHub/GitLab**: create issues with the platform's native blocking/sub-issue relationship where available, else a `Blocked by` list of issue references. Apply a `ready-for-agent` label.
 - **Local**: one file per issue under `.scratch/<feature-slug>/issues/`, numbered from `01` in dependency order, each with a `Blocked by` list of numbers/titles.
 
-Issue template:
+Issue template (UI-bearing slices add a Design reference section - it travels into the task brief and the review input, so workers match the committed design system and critics judge against it):
 
 ```markdown
 ## What to build
@@ -68,6 +68,9 @@ Issue template:
 ## Acceptance criteria
 - [ ] Criterion 1
 - [ ] Criterion 2
+
+## Design reference
+<UI-bearing slices only: path to the committed design system (tokens, components) and the prototype or screen being built - e.g. Claude Design output committed to the repo. Omit for logic-only slices.>
 
 ## Blocked by
 <reference(s), or "None — can start immediately">
@@ -149,7 +152,7 @@ Hand back:
 ## Phase 5 — Supervise & review
 
 - Poll tmux/CLI workers and capture transcripts (shipwright mechanics). Send corrections to the same worker — never a fresh one.
-- Review each PR from source, not the summary: read the full diff, run the tests independently, check for scope creep and weakened tests. Delegate a second pass to a reviewer agent if one exists.
+- Review each PR from source, not the summary: read the full diff, run the tests independently, check for scope creep and weakened tests. UI-bearing PRs are judged against the slice's Design reference - committed tokens and components, the prototype - never a hypothetical better design. Delegate a second pass to a reviewer agent if one exists.
 - **Blocking** finding → correction to the same worker. **Non-blocking** → record for the user.
 - After all waves pass and the user approves, merge PRs in dependency order — the coordinator merges, never the workers. Conflicts → re-dispatch a worker on a fresh branch off merged main.
 
