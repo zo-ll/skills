@@ -7,6 +7,17 @@ description: Write or review clean, maintainable C using lessons from SQLite, Re
 
 Write C that is explicit, cohesive, testable, and unsurprising.
 
+## Read what maps
+
+- headers, APIs, modules -> Design around contracts
+- ownership, allocation, cleanup -> Make ownership obvious
+- errors, return conventions, errno -> Handle errors deliberately
+- buffers, sizes, types, containers -> Keep data structures honest
+- control flow, macros -> Prefer readable control flow
+- portability, C standard, casts -> Respect the language boundary
+- tests -> Test failure as well as success
+- reviewing a PR -> Review in risk order
+
 ## Start with the codebase
 
 Before changing code:
@@ -50,6 +61,17 @@ size. Do not impose a large-project architecture on a small program.
 - Never overwrite the only pointer to an allocation with `realloc` before checking
   its result.
 
+  ```c
+  /* Incorrect: realloc clobbers the only pointer on failure - the old
+     allocation leaks and the data is lost */
+  buf = realloc(buf, new_size);
+
+  /* Correct: keep the old pointer until realloc succeeds */
+  void *grown = realloc(buf, new_size);
+  if (grown == NULL) { /* handle; buf still owned and intact */ }
+  buf = grown;
+  ```
+
 ## Handle errors deliberately
 
 - Follow the repository's return convention consistently. Common choices include
@@ -63,6 +85,15 @@ size. Do not impose a large-project architecture on a small program.
 - Preserve `errno` when cleanup or logging could overwrite an error the caller
   needs.
 
+  ```c
+  /* Incorrect: unchecked result - a short/corrupt write goes unnoticed */
+  fwrite(buf, 1, n, out);
+
+  /* Correct: checked, with context preserved */
+  if (fwrite(buf, 1, n, out) != n)
+      return write_error("short write to output");
+  ```
+
 ## Keep data structures honest
 
 - Optimize first for clear invariants, ownership, and locality.
@@ -73,6 +104,16 @@ size. Do not impose a large-project architecture on a small program.
 - Choose signed and unsigned types intentionally. Validate conversions and avoid
   relying on signed overflow, invalid shifts, object aliasing violations, or
   out-of-bounds pointer arithmetic.
+
+  ```c
+  /* Incorrect: len * elem_size wraps - overflow yields a small allocation
+     and later out-of-bounds writes */
+  items = malloc(len * sizeof *items);
+
+  /* Correct: overflow checked before the size is used */
+  if (len > SIZE_MAX / sizeof *items) return ERR_OVERFLOW;
+  items = malloc(len * sizeof *items);
+  ```
 - Use compile-time assertions for layout or range assumptions when the selected C
   standard supports them.
 - Treat embedded metadata, flexible array members, intrusive structures, and
@@ -98,6 +139,15 @@ size. Do not impose a large-project architecture on a small program.
   consistency choices, not universal correctness rules.
 - Prefer bounded operations with explicit sizes. Prove that every buffer access
   and string operation fits, including terminators.
+
+  ```c
+  /* Incorrect: unbounded copy - no limit, overflow on long input */
+  strcpy(dst, src);
+
+  /* Correct: bounded, size-explicit, NUL guaranteed */
+  size_t n = snprintf(dst, sizeof dst, "%s", src);
+  if (n >= sizeof dst) /* truncated - caller decides if that is acceptable */;
+  ```
 - Minimize casts. Never cast merely to silence a warning without understanding the
   conversion.
 
