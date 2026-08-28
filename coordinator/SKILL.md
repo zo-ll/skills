@@ -123,9 +123,8 @@ Per issue `<n>` with slug `<slug>`:
    ```bash
    tracked=$(git -C <repo> config --get "branch.$(git -C <repo> branch --show-current).remote" 2>/dev/null)
    if [ -z "$tracked" ]; then
-     remotes=$(git -C <repo> remote)
-     [ "$(printf '%s\n' "$remotes" | wc -l)" = 1 ] || { echo "resolve remote with the user: none or several"; exit 1; }
-     tracked="$remotes"
+     [ "$(git -C <repo> remote | awk 'END { print NR }')" = 1 ] || { echo "resolve remote with the user: none or several"; exit 1; }
+     tracked=$(git -C <repo> remote)
    fi
    default=$(git -C <repo> symbolic-ref "refs/remotes/$tracked/HEAD" 2>/dev/null | sed "s@^refs/remotes/$tracked/@@")
    [ -n "$default" ] || default=$(git -C <repo> ls-remote --symref "$tracked" HEAD | awk '/^ref:/ { sub("refs/heads/", ""); print $2 }')
