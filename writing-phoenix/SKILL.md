@@ -126,7 +126,7 @@ description: >-
 
 1. LiveView: impure render, assigns mutation, blocking work in events, unbound streams.
 2. Data flow: controllers/channels bypassing contexts; Ecto leaks; N+1 in render or streams.
-3. Security/auth: unauthenticated joins, missing authorization at the boundary, trusted params.
+3. Security/auth: unauthenticated sockets, unauthorized joins, missing authorization at the boundary, trusted params.
 4. Channels: unscoped broadcasts, blocking handlers.
 5. Tests: missing LiveView/join/auth coverage.
 6. Structure: logic in the router, oversized controllers, contexts crossing domains.
@@ -136,5 +136,5 @@ Report concrete findings before preferences: cite the location, explain the fail
 ## Final check
 
 - Run `mix test` (including LiveViewTest), `mix format --check-formatted`, Credo.
-- Contexts own all Ecto access; live views fetch in mount; joins authenticated.
+- Contexts own all Ecto access; live views fetch in mount; connects authenticated, joins authorized.
 - State which verification ran; disclose what could not be tested.

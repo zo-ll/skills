@@ -121,11 +121,17 @@ Per issue `<n>` with slug `<slug>`:
 
 1. **Worktree + branch off latest main** (each worker gets its own tree — sharing a checkout between parallel workers clobbers branch state):
    ```bash
-   remote=$(git -C <repo> remote | head -1)
-   default=$(git -C <repo> symbolic-ref "refs/remotes/$remote/HEAD" 2>/dev/null | sed "s@^refs/remotes/$remote/@@")
-   [ -n "$default" ] || default=$(git -C <repo> ls-remote --symref "$remote" HEAD | awk '/^ref:/ { sub("refs/heads/", ""); print $2 }')
-   git -C <repo> fetch "$remote" "$default"
-   git -C <repo> worktree add -b coord/<n>-<slug> <wt> "$remote/$default"
+   tracked=$(git -C <repo> config --get "branch.$(git -C <repo> branch --show-current).remote" 2>/dev/null)
+   if [ -z "$tracked" ]; then
+     remotes=$(git -C <repo> remote)
+     [ "$(printf '%s\n' "$remotes" | wc -l)" = 1 ] || { echo "resolve remote with the user: none or several"; exit 1; }
+     tracked="$remotes"
+   fi
+   default=$(git -C <repo> symbolic-ref "refs/remotes/$tracked/HEAD" 2>/dev/null | sed "s@^refs/remotes/$tracked/@@")
+   [ -n "$default" ] || default=$(git -C <repo> ls-remote --symref "$tracked" HEAD | awk '/^ref:/ { sub("refs/heads/", ""); print $2 }')
+   [ -n "$default" ] || { echo "resolve default branch with the user"; exit 1; }
+   git -C <repo> fetch "$tracked" "$default"
+   git -C <repo> worktree add -b coord/<n>-<slug> <wt> "$tracked/$default"
    ```
    Never `worktree remove --force` a path that has a working tree: a dirty or unidentified worktree may hold user work. To redo a slice, remove the previous worktree only after confirming it is clean, or ask the user.
 2. **Spawn the worker** on the worktree, passing its `skills` manifest from Phase 2 explicitly to the subagent tool (spawn matrix below). Record the manifest in the ledger's Skills column the same turn.
