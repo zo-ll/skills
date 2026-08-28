@@ -121,9 +121,11 @@ Per issue `<n>` with slug `<slug>`:
 
 1. **Worktree + branch off latest main** (each worker gets its own tree — sharing a checkout between parallel workers clobbers branch state):
    ```bash
-   default=$(git -C <repo> symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
-   git -C <repo> fetch origin "$default"
-   git -C <repo> worktree add -b coord/<n>-<slug> <wt> "origin/$default"
+   remote=$(git -C <repo> remote | head -1)
+   default=$(git -C <repo> symbolic-ref "refs/remotes/$remote/HEAD" 2>/dev/null | sed "s@^refs/remotes/$remote/@@")
+   [ -n "$default" ] || default=$(git -C <repo> ls-remote --symref "$remote" HEAD | awk '/^ref:/ { sub("refs/heads/", ""); print $2 }')
+   git -C <repo> fetch "$remote" "$default"
+   git -C <repo> worktree add -b coord/<n>-<slug> <wt> "$remote/$default"
    ```
    Never `worktree remove --force` a path that has a working tree: a dirty or unidentified worktree may hold user work. To redo a slice, remove the previous worktree only after confirming it is clean, or ask the user.
 2. **Spawn the worker** on the worktree, passing its `skills` manifest from Phase 2 explicitly to the subagent tool (spawn matrix below). Record the manifest in the ledger's Skills column the same turn.

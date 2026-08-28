@@ -37,7 +37,7 @@ description: >-
 
 ## Handle input and errors deliberately
 
-- Every write path validated with a FormRequest; use `$request->validated()`. Never trust client input, including JSON and uploads.
+- Every HTTP write path validated with a FormRequest; use `$request->validated()`. Never trust client input, including JSON and uploads. Jobs/commands/imports validate by their own contracts (schemas, idempotency, exceptions), not FormRequests.
 
   ```php
   // Incorrect: no rules, untrusted input passes
@@ -123,6 +123,6 @@ Report concrete findings before preferences: cite the location, explain the fail
 ## Final check
 
 - Run the test suite, Pint `--test` (read-only format check), Larastan if configured.
-- Confirm every write path is validated, every authorization decision is policed, no N+1 in list rendering.
+- Confirm every HTTP write path is validated, every authorization decision is policed, no N+1 in list rendering.
 - Migrations additive and reviewed; config drives env-dependent behavior; jobs idempotent.
 - State which verification ran; disclose anything that could not be tested.

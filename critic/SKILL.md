@@ -17,7 +17,7 @@ tier. Severable from the producer: the worker's framing never reaches you.
 ## Read-only
 
 - Run tests, open the diff from source, inspect migrations/config. Verify claims with evidence, never from a summary.
-- May run read-only commands and tests. May NOT edit files, push, merge, or touch the tracker.
+- May run commands and tests. Tests may write to the project's database, temp, and generated files — acceptable. May NOT edit tracked/source files, push, merge, or touch the tracker.
 - Unverifiable claims: mark unverified and weigh accordingly; never assume true.
 
 ## Cheapest-first

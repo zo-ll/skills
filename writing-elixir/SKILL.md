@@ -76,7 +76,7 @@ description: >-
 
 ## Keep data access honest
 
-- Every write through a changeset: `cast`, `validate`, `Repo.insert`. Never structs from external params.
+- Writes from untrusted or derived input go through a changeset: `cast`, `validate`, `Repo.insert`; never structs from external params. Trusted internal and bulk operations use `insert_all`/explicit schema paths with their own invariants.
 
   ```elixir
   # Incorrect: params bypass validation - no casts, no constraints
@@ -132,6 +132,6 @@ Report concrete findings before preferences: cite the location, explain the fail
 ## Final check
 
 - Run `mix test`, `mix format --check-formatted`, Credo (or the project's checks).
-- Every write path uses a changeset; relations preloaded; every process supervised with bounded work.
+- Writes from untrusted input go through changesets; relations preloaded; every process supervised with bounded work.
 - Error paths handled, not swallowed; jobs idempotent.
 - State which verification ran; disclose what could not be tested.
