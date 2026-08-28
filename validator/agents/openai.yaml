@@ -1,0 +1,4 @@
+interface:
+  display_name: "Validator"
+  short_description: "Try to kill an idea before anyone builds it"
+  default_prompt: "Use $validator to adversarially validate this idea, find existing solutions and cheaper alternatives, and issue a verdict before we build anything."

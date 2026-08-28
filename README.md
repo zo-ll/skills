@@ -17,6 +17,9 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 - `learn-by-building/` — learn a subject by building a real project.
 - `shipwright/` — delegate work to an external coding-agent CLI in
   tmux/Herdr and supervise it.
+- `validator/` — adversarially validate an idea before implementation by
+  researching existing solutions, trying to disprove the premise, and proposing
+  cheaper alternatives.
 - `work-report/` — full grounded report of session/branch work.
 - `writing-c/` — clean, maintainable C.
 - `writing-elixir/` — Elixir/OTP/Ecto base (stack-agnostic).
