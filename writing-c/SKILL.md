@@ -144,9 +144,10 @@ size. Do not impose a large-project architecture on a small program.
   /* Incorrect: unbounded copy - no limit, overflow on long input */
   strcpy(dst, src);
 
-  /* Correct: bounded, size-explicit, NUL guaranteed */
-  size_t n = snprintf(dst, sizeof dst, "%s", src);
-  if (n >= sizeof dst) /* truncated - caller decides if that is acceptable */;
+  /* Correct: bounded, size-explicit; snprintf returns int and can error */
+  int n = snprintf(dst, sizeof dst, "%s", src);
+  if (n < 0) { /* encoding error - do not use dst */ }
+  else if ((size_t)n >= sizeof dst) { /* truncated - caller decides */ }
   ```
 - Minimize casts. Never cast merely to silence a warning without understanding the
   conversion.

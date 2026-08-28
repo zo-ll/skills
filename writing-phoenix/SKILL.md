@@ -81,21 +81,28 @@ description: >-
   ```
 
 - Forms driven by `to_form` + changeset; validation errors through the changeset, never ad hoc.
-- Streams (`stream_assigns`, `stream_insert`) for large or incremental lists; `phx-click` with values, not JS callbacks.
+- Streams (`stream`, `stream_insert`, `stream_delete`) for large or incremental lists; `phx-click` with values, not JS callbacks.
 - Cross-reference: changesets and OTP discipline live in `writing-elixir`.
 
 ## Channels
 
-- Authenticate in `join/3`; assign identity via the socket; reject anonymous joins.
+- Authenticate in socket `connect/3` and assign identity on the socket; `join/3` authorizes access to the requested topic.
 
   ```elixir
-  # Incorrect: join without identity - broadcasts cannot be scoped
-  def join("room:lobby", _payload, socket), do: {:ok, socket}
+  # Incorrect: no identity on the socket - nothing to authorize against
+  def connect(_params, socket), do: {:ok, socket}
 
-  # Correct
+  # Correct: authenticate in connect, authorize the topic in join
+  def connect(%{"token" => token}, socket) do
+    case Accounts.find_session(token) do
+      {:ok, user} -> {:ok, assign(socket, :current_user, user)}
+      :error -> :error
+    end
+  end
+
   def join("room:" <> id, _payload, socket) do
-    if authorized?(socket, id) do
-      {:ok, assign(socket, :room_id, id)}
+    if Membership.authorized?(socket.assigns.current_user, id) do
+      {:ok, socket}
     else
       {:error, %{reason: "unauthorized"}}
     end
