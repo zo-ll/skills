@@ -16,7 +16,7 @@ This skill is self-contained. Every phase below carries its own rules. You may u
 - **Workers are focused**: one issue, one worktree, one branch, one PR. A worker never touches the issue tracker, never merges, never edits another worker's tree, never sees the whole plan.
 - **Issues are the visible plan**, created by you. Workers never create, comment, or close them. Closing is the user's action — you may close with explicit approval once the PR is merged.
 - **Everything runs with the user's git identity.** Workers spawn in the user's shell environment and inherit their git/ssh/GitHub auth. No bot accounts, no separate identities.
-- **Skills travel with the task.** You name the skills a worker must load in the task brief (e.g. `writing-c`, `tdd`, `diagnosing-bugs`). Only name skills that actually exist in this environment — check what's available. The worker reads that skill's SKILL.md and follows it.
+- **The manifest is decided, not requested.** You determine each worker's skill set from the repo and the slice (Phase 2), and pass it to the subagent tool as the `skills` parameter — the worker never chooses its own skills and never picks them from the ask. Windowed/external workers get the same set named in the brief (advisory, since those harnesses cannot enforce scoping).
 - **You implement nothing yourself** during an orchestrated run. If a task is too small to delegate, you're in the wrong mode — see the scale gate.
 - **Merge only after review passes and the user approves.**
 
@@ -54,6 +54,8 @@ Give every slice its **blocking edges** — the slices that must complete before
 
 Present the breakdown to the user: each slice's title, blocked-by, and what it delivers. Ask whether the granularity is right and whether the blocking edges are correct. Iterate until approved.
 
+**Skill manifest — check from the repo, decide per slice.** During decomposition, determine the project's stack from its manifests and file extensions, then map the stack to skills that actually exist in this environment: composer.json → `writing-laravel`; package.json + `*.vue` → `writing-vue`/`writing-js`; mix.exs with phoenix_live_view → `writing-elixir` (+ `writing-phoenix` at the seam); Cargo.toml → `writing-rust`; go.mod → `writing-go`; make/cc → `writing-c`. Assign each slice the single smallest skill that covers its core layer; add the second skill only when the slice genuinely crosses a seam (e.g. a LiveView form writing through Ecto). Verify correctness from the repo, never by guessing from the ask — a Vue UI slice gets `writing-vue` even if the goal wording mentions the backend. Err on under-loading: over-loading taxes every worker unconditionally, while the critic catches what a missing skill would have caused. Respect a skill's usage boundary when its description declares one (e.g. an 'excludes framework app code' clause).
+
 Then publish one issue per slice, **in dependency order (blockers first)**, so blocking references can use real identifiers:
 
 - **GitHub/GitLab**: create issues with the platform's native blocking/sub-issue relationship where available, else a `Blocked by` list of issue references. Apply a `ready-for-agent` label.
@@ -80,7 +82,7 @@ Keep file paths and code snippets out of issue bodies — they go stale. That de
 
 ## Phase 3 — COORDINATION.md
 
-Create or refresh `<repo>/COORDINATION.md` — the single source of coordinator state. The table is a **live ledger**: mark an issue `dispatched` only once its worker has actually been spawned, `reviewed` only once the review gate passed, `merged` only after the merge lands. Update it immediately after each event, every phase transition, and before any user-facing status report. If you find yourself about to report state that isn't in the file, write it first.
+Create or refresh `<repo>/COORDINATION.md` — the single source of coordinator state. The table is a **live ledger**: mark an issue `dispatched` only once its worker has actually been spawned, `reviewed` only once the review gate passed, `merged` only after the merge lands. Record the per-slice skill manifest in the Skills column at dispatch time — it makes the manifest decision auditable, not just stated. Update it immediately after each event, every phase transition, and before any user-facing status report. If you find yourself about to report state that isn't in the file, write it first.
 
 ```markdown
 # Coordination — <goal>
@@ -91,9 +93,9 @@ Status: active | paused | done
 <one paragraph>
 
 ## Issues
-| # | Title | Blocked by | Branch | Worker | PR | Status |
-|---|-------|-----------|--------|--------|----|--------|
-| 1 | <title> | — | coord/1-<slug> | pi worker | #12 | merged |
+| # | Title | Blocked by | Branch | Worker | Skills | PR | Status |
+|---|-------|-----------|--------|--------|--------|----|--------|
+| 1 | <title> | — | coord/1-<slug> | pi worker | writing-c | #12 | merged |
 
 ## Waves
 - Wave 1: #1, #2 (parallel)
@@ -118,7 +120,7 @@ Per issue `<n>` with slug `<slug>`:
    git -C <repo> worktree remove --force <wt> 2>/dev/null || true
    git -C <repo> worktree add -b coord/<n>-<slug> <wt> origin/main
    ```
-2. **Spawn the worker** on the worktree (spawn matrix below).
+2. **Spawn the worker** on the worktree, passing its `skills` manifest from Phase 2 explicitly to the subagent tool (spawn matrix below). Record the manifest in the ledger's Skills column in the same turn.
 3. Worker pushes the branch, opens a PR, and hands back.
 
 ### Spawn matrix (harness-agnostic)
@@ -138,7 +140,7 @@ Issue: <title> (#<n>)
 Project: <worktree path>   (branch coord/<n>-<slug> already checked out — do not recreate)
 Goal: <one line, in the project's vocabulary>
 Scope: <what to change>   Out of scope: <what not to touch>
-Skills: load and follow: <skills that exist in this environment, e.g. writing-c, tdd>
+Skills: <the manifest applied at spawn for pi subagents; listed here for windowed/external workers only, where it is advisory>
 Build/test: <exact commands and expected results>
 Done when: <acceptance criteria from the issue>
 Constraints: work only in this worktree; never run gh issue commands; never merge or push to main;
