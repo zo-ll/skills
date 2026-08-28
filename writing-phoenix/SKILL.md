@@ -128,6 +128,6 @@ Report concrete findings before preferences: cite the location, explain the fail
 
 ## Final check
 
-- Run `mix test` (including LiveViewTest), format, Credo.
+- Run `mix test` (including LiveViewTest), `mix format --check-formatted`, Credo.
 - Contexts own all Ecto access; live views fetch in mount; joins authenticated.
 - State which verification ran; disclose what could not be tested.

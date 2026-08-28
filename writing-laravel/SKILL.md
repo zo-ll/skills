@@ -63,18 +63,19 @@ description: >-
   ```
 
 - Fail loudly for programmer errors. Expected failures consistent: 404 via route model binding, 403 via authorization, 422 via validation.
-- Multi-step writes in `DB::transaction`; jobs/webhooks idempotent and retryable.
+- Multi-step writes in `DB::transaction`; side effects (payments, emails, external calls) run AFTER commit — never inside the transaction: they cannot be rolled back and hold locks during I/O. Jobs/webhooks idempotent and retryable.
 
   ```php
-  // Incorrect: failure in step two leaves step one committed
-  $order->save();
-  $this->charge($order);
-
-  // Correct
+  // Incorrect: external call inside the DB transaction - not rollbackable,
+  // holds a connection and locks during network I/O
   DB::transaction(function () use ($order) {
       $order->save();
       $this->charge($order);
   });
+
+  // Correct: transaction for the DB writes; the charge runs after commit
+  DB::transaction(fn () => $order->save());
+  dispatch(new ChargeOrder($order));   // idempotent, queued after commit
   ```
 
 - JSON APIs: shape with `JsonResource`; consistent error shape and status codes.
@@ -121,7 +122,7 @@ Report concrete findings before preferences: cite the location, explain the fail
 
 ## Final check
 
-- Run the test suite, Pint (or the project's format check), Larastan if configured.
+- Run the test suite, Pint `--test` (read-only format check), Larastan if configured.
 - Confirm every write path is validated, every authorization decision is policed, no N+1 in list rendering.
 - Migrations additive and reviewed; config drives env-dependent behavior; jobs idempotent.
 - State which verification ran; disclose anything that could not be tested.

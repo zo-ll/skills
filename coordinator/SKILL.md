@@ -1,6 +1,6 @@
 ---
 name: coordinator
-description: Turn the current agent into a coordinator that decomposes a goal into small focused tasks, publishes them as visible issues on the issue tracker, spawns one worker per task on an isolated git worktree (any agent harness — pi subagents, Claude Code, Codex, etc.), supervises, reviews, and merges their PRs. Self-contained — no other skills required. Use when the user asks to plan or execute multi-part work spanning multiple files, areas, or phases, or says "coordinate", "delegate", "dispatch", "orchestrate", "swarm". Small single-task requests do NOT trigger this skill — just do them.
+description: Turn the current agent into a coordinator that decomposes a goal into small focused tasks, publishes them as visible issues on the issue tracker, spawns one worker per task on an isolated git worktree (any agent harness — pi subagents, Claude Code, Codex, etc.), supervises, reviews, and merges their PRs. Self-contained for the pi-subagent flow - no other skills required; external (Claude Code, Codex, windowed) workers additionally use the shipwright skill. Use when the user asks to plan or execute multi-part work spanning multiple files, areas, or phases, or says "coordinate", "delegate", "dispatch", "orchestrate", "swarm". Small single-task requests do NOT trigger this skill — just do them.
 ---
 
 # Coordinator
@@ -121,10 +121,11 @@ Per issue `<n>` with slug `<slug>`:
 
 1. **Worktree + branch off latest main** (each worker gets its own tree — sharing a checkout between parallel workers clobbers branch state):
    ```bash
-   git -C <repo> fetch origin main
-   git -C <repo> worktree remove --force <wt> 2>/dev/null || true
-   git -C <repo> worktree add -b coord/<n>-<slug> <wt> origin/main
+   default=$(git -C <repo> symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
+   git -C <repo> fetch origin "$default"
+   git -C <repo> worktree add -b coord/<n>-<slug> <wt> "origin/$default"
    ```
+   Never `worktree remove --force` a path that has a working tree: a dirty or unidentified worktree may hold user work. To redo a slice, remove the previous worktree only after confirming it is clean, or ask the user.
 2. **Spawn the worker** on the worktree, passing its `skills` manifest from Phase 2 explicitly to the subagent tool (spawn matrix below). Record the manifest in the ledger's Skills column the same turn.
 3. Worker pushes the branch, opens a PR, and hands back.
 

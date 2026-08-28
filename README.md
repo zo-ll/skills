@@ -12,11 +12,26 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
   goal into small tasks, publish them as visible issues, spawn one focused
   worker per task on an isolated git worktree (harness-agnostic), supervise,
   review, and merge their PRs.
+- `critic/` — independent verification-first review with a structured verdict
+  contract; spawned per surviving PR (read-only, starved input).
 - `learn-by-building/` — learn a subject by building a real project.
 - `shipwright/` — delegate work to an external coding-agent CLI in
   tmux/Herdr and supervise it.
 - `work-report/` — full grounded report of session/branch work.
 - `writing-c/` — clean, maintainable C.
+- `writing-elixir/` — Elixir/OTP/Ecto base (stack-agnostic).
+- `writing-go/` — idiomatic Go.
+- `writing-js/` — JavaScript + TypeScript (TS as JS with types).
+- `writing-laravel/` — Laravel applications and packages.
+- `writing-phoenix/` — thin Phoenix layer over `writing-elixir` (routes,
+  contexts, LiveView, channels).
+- `writing-rust/` — clean, maintainable Rust.
+- `writing-vue/` — Vue 3 applications and components (pairs with
+  `writing-laravel`).
+
+`harness/` additionally holds the pi subagent extension (scoped skill
+manifests via `--no-skills --skill`) and the `worker`/`critic` agent
+definitions; `bin/bootstrap.sh` installs everything on a new machine.
 
 ## Installing / re-linking
 

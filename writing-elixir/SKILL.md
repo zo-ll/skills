@@ -131,7 +131,7 @@ Report concrete findings before preferences: cite the location, explain the fail
 
 ## Final check
 
-- Run `mix test`, `mix format`, Credo (or the project's checks).
+- Run `mix test`, `mix format --check-formatted`, Credo (or the project's checks).
 - Every write path uses a changeset; relations preloaded; every process supervised with bounded work.
 - Error paths handled, not swallowed; jobs idempotent.
 - State which verification ran; disclose what could not be tested.

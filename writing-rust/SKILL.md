@@ -50,7 +50,7 @@ description: >-
   let total: usize = list.iter().map(|s| s.len()).sum();
   ```
 
-- Lifetimes: explicit at API boundaries, elided inside. Prefer owned data + borrowing over long-lived references held across scopes.
+- Elide lifetimes where unambiguous; name them only where the contract demands it (borrowed return types, ambiguous signatures). Prefer owned data + borrowing over long-lived references held across scopes.
 - Interior mutability (`RefCell`, `Mutex`) only with a documented invariant; prefer ownership and passed-in parameters.
 - No `Arc`/`Rc` until sharing genuinely demands it.
 
@@ -128,7 +128,7 @@ Report concrete findings before preferences: cite the location, explain the fail
 
 ## Final check
 
-- Run `cargo test`, clippy, rustfmt (or the project's checks).
+- Run `cargo test`, clippy, `cargo fmt --check` (or the project's checks).
 - No fallible access panics in library code; no unsafe without a documented contract; no hot-loop clones.
 - Every spawned task owned and cancelled/awaited; blocking work off async paths.
 - State which verification ran; disclose what could not be tested.

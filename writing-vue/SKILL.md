@@ -82,7 +82,7 @@ description: >-
 ## Rendering and performance
 
 - Derive render data with computed; never recompute in the template or in methods called from it.
-- Large/hot collections: `shallowRef` + targeted updates over deep reactivity. Batch updates; don't replace arrays when one item changed.
+- Large/hot collections: `shallowRef` — mutating nested values under `shallowRef` does NOT trigger updates; replace the value (or call `triggerRef`) to notify. For deep reactive state, batch mutations; don't replace whole arrays per change.
 - Code-split routes and heavy components with dynamic `import`; lazy-load what is not in the initial view.
 - Reactive leaks: watchers and intervals created in setup must stop — prefer `onScopeDispose`/`effectScope`.
 
