@@ -6,15 +6,7 @@ description: >-
 
 # Writing Vue
 
-Write Vue 3 that follows the composition API and the framework's intended data
-flow, stays testable, and is unsurprising to a Vue developer. Draw lessons from
-the framework, its reference libraries, and real applications without copying
-any one project's conventions mechanically.
-
 ## Read what maps
-
-Read only the section that maps to the change; a small slice needs one section,
-not the whole file.
 
 - components, props, events -> Composition API idioms, Components
 - state, shared data -> State and data flow
@@ -25,106 +17,77 @@ not the whole file.
 
 ## Start with the codebase
 
-Before changing code:
-
-1. Read repository instructions, `package.json`, src entry, routes, and tests.
-2. Determine the Vue version and TypeScript setup, Vite/build tool, ESLint and
-   Prettier config, test commands (Vitest), and state and router libraries.
-3. Preserve established conventions unless they cause a concrete correctness or
-   maintainability problem. For new projects, choose the simplest structure
-   that fits the expected size.
+- Read AGENTS.md, package.json, src entry, routes, tests. Determine Vue/TS versions, build tool (Vite), ESLint/Prettier config, test commands (Vitest), state and router libraries.
+- Preserve established conventions unless they cause a concrete correctness or maintainability problem. New projects: simplest structure that fits.
 
 ## Composition API idioms
 
-- Prefer `<script setup>` and the composition API. Keep setup blocks readable:
-  props first, then state, derived values, and functions.
-- Use `ref` for primitives and single values, `reactive` for object-shaped
-  state, `computed` for derived state. Never derive state with watchers.
-- Prefer computed over watch. Use watchers for side effects (persistence,
-  sync, refetch) and nothing else. Mind `watch` options: flush, deep, immediate.
-- Use typed `defineProps` and `defineEmits` so contracts are checkable. Expose
-  template refs and `defineExpose` only when a parent genuinely needs them.
-- Keep composables named after the concept (`useOrders`) and bound to one
-  responsibility, like components.
+- `<script setup>` and the composition API. Setup order: props, state, derived values, functions.
+- `ref` for primitives/single values; `reactive` for object-shaped state; `computed` for derived state. Never derive state with watchers.
+- Watchers for side effects only (persistence, sync, refetch). Mind `watch` options: flush, deep, immediate.
+- Typed `defineProps`/`defineEmits` so contracts are checkable. `defineExpose` only when a parent genuinely needs it.
+- Composables named after the concept (`useOrders`), one responsibility each.
 
 ## Components
 
-- One component, one job: presentational components render props and emit
-  events; containers own state and data fetching.
-- Split components when they outgrow a scroll of template and logic, by
-  responsibility, not by convenience.
-- Never mutate props. Communicate changes by emitting events or through
-  v-model; let the parent own the state.
+- Presentational components render props and emit events; containers own state and data fetching.
+- Split when a component outgrows a scroll of template and logic — by responsibility, not convenience.
+- Never mutate props; emit events or v-model; the parent owns the state.
 
   ```ts
   // Incorrect: child mutating a prop changes parent state behind its back
   const props = defineProps<{ items: string[] }>()
   props.items.push('new')
 
-  // Correct: emit, and let the parent own the state
+  // Correct
   const emit = defineEmits<{ added: [item: string] }>()
   function add() { emit('added', 'new') }
   ```
 
-- Use `provide`/`inject` sparingly for shared context, not as a global state
-  stash. Prefer slots over prop drilling when structure is what varies.
-- Keep dependencies injected and out of components so components stay
-  testable.
+- `provide`/`inject` sparingly, as shared context not a state stash. Slots over prop drilling when structure varies.
+- Inject dependencies; keep components testable.
 
 ## State and data flow
 
-- Keep data flow one-way: server state in a fetch layer, shared UI state in
-  Pinia, ephemeral state local to the component.
-- Derive everything you can. Cached derived state from computed beats state
-  you must remember to update.
-- Treat Pinia stores like modules: actions do the work, getters derive,
-  components read and call. Keep stores free of view concerns.
-- Normalize repeated server data; denormalize only at the edge where views
-  need it.
+- One-way data flow: server state in a fetch layer, shared UI state in Pinia, ephemeral state local.
+- Derive what you can: computed beats state you must remember to update.
+- Pinia stores as modules: actions do the work, getters derive, components read and call. No view concerns in stores.
+- Normalize repeated server data; denormalize only at the view edge.
 
 ## Templates and styles
 
-- Keep templates readable: small conditionals, named components, extracted
-  computed and functions instead of logic inline.
-- Always use a stable value for `v-for` keys; the key is identity, not
-  position.
+- Templates readable: small conditionals, named components, extracted computed/functions — no logic inline.
+- Stable `v-for` keys; the key is identity, not position.
 
   ```vue
   <!-- Incorrect: index keys break state when the list reorders -->
   <li v-for="(item, i) in items" :key="i">
 
-  <!-- Correct: stable identity -->
+  <!-- Correct -->
   <li v-for="item in items" :key="item.id">
   ```
 
-- Escape output by default. Use `v-html` only for content sanitized for the
-  exact HTML context, never for user input.
+- Escape by default. `v-html` only for content sanitized for the exact HTML context, never user input.
 
   ```vue
   <!-- Incorrect: rendering untrusted input as HTML -->
   <div v-html="userBio"></div>
 
-  <!-- Correct: escaped interpolation by default -->
+  <!-- Correct -->
   <div>{{ userBio }}</div>
   ```
 
-- Prefer semantic HTML, scoped styles, and CSS nesting; class names are a last
-  resort. Keep styles local with `scoped` and avoid deep selectors unless they
-  earn their place.
+- Semantic HTML, scoped styles, CSS nesting; class names last resort. Avoid deep selectors unless they earn their place.
 
 ## Rendering and performance
 
-- Derive render data with computed; never recompute in the template or in
-  methods called from the template.
-- For large or hot collections, prefer `shallowRef` and targeted updates over
-  deep reactivity. Batch updates; don't replace arrays when one item changed.
-- Code-split routes and heavy components with dynamic `import`. Keep bundles
-  honest: lazy-load what is not in the initial view.
-- Watch for reactive leaks: watchers and intervals created in setup must
-  stop. Prefer `onScopeDispose` and `effectScope` over manual cleanup.
+- Derive render data with computed; never recompute in the template or in methods called from it.
+- Large/hot collections: `shallowRef` + targeted updates over deep reactivity. Batch updates; don't replace arrays when one item changed.
+- Code-split routes and heavy components with dynamic `import`; lazy-load what is not in the initial view.
+- Reactive leaks: watchers and intervals created in setup must stop — prefer `onScopeDispose`/`effectScope`.
 
   ```ts
-  // Incorrect: a watcher deriving state - extra state to keep in sync
+  // Incorrect: watcher deriving state - extra state to keep in sync
   watch(search, (q) => { filtered.value = all.value.filter(matches(q)) })
 
   // Correct: derived state recomputes on demand
@@ -133,46 +96,29 @@ Before changing code:
 
 ## Testing
 
-- Test the public seam: mount the component, drive it with user-visible
-  interactions, assert rendered output and emitted events - not internal state.
-- Test failure and empty states as well as the happy path. Keep tests
-  deterministic: no timers, randomness, or network without fakes.
-- Mock only the boundary (fetch layer, stores); let components render for
-  real.
-- Watch for weakened tests: a test that only passes after loosening a mock or
-  asserting internals is suspect.
+- Test the public seam: mount, drive user-visible interactions, assert rendered output and emitted events — not internal state.
+- Test failure and empty states. Deterministic: no timers, randomness, or network without fakes.
+- Mock only the boundary (fetch layer, stores); let components render for real.
+- Suspect tests that pass only after loosening a mock or asserting internals.
 
 ## Respect the version boundary
 
-- Pin the Vue version and TypeScript setup in use; use features that exist in
-  the installed version and check deprecations before upgrading.
-- Match the project's ESLint/Prettier configuration and the Vue style guide's
-  priority rules; treat style as a consistency choice, not a universal rule.
+- Pin the Vue/TS versions; use features of the installed version; check deprecations before upgrading.
+- Match the project's ESLint/Prettier config and the Vue style guide's priority rules.
 
 ## Review in risk order
 
-When reviewing Vue, prioritize:
+1. Security/correctness: `v-html` with untrusted content, mutated props, unstable keys, logic in templates.
+2. State/data flow: derived state via watchers, shared state in the wrong layer, stores with view concerns, missing error states.
+3. Performance: deep reactivity on large data, recompute in render, unloaded bundles, watcher/interval leaks.
+4. Test quality: internals assertions, mocks loosened, missing failure-state coverage.
+5. Structure, naming, style, TypeScript contracts.
 
-1. Security and correctness: `v-html` with untrusted content, mutated props,
-   unstable keys, logic leaked into templates.
-2. State and data flow: derived state via watchers, shared state in the wrong
-   layer, stores with view concerns, missing error states.
-3. Performance: deep reactivity on large data, recompute in render, unloaded
-   bundles, watcher and interval leaks.
-4. Test quality: tests asserting internals or passing only after loosening
-   mocks, missing failure-state coverage.
-5. Structure, naming, style, and TypeScript contracts.
-
-Report concrete findings before preferences. Cite the location, explain the
-failure mode, and suggest the smallest robust fix.
+Report concrete findings before preferences: cite the location, explain the failure mode, suggest the smallest robust fix.
 
 ## Final check
 
-Before finishing:
-
-- Run the test suite and the project's lint and type checks.
-- Confirm no prop is mutated, every `v-for` key is stable, and no `v-html`
-  renders untrusted input.
-- Confirm derived state is computed, not watched; watchers and intervals stop
-  when the scope disposes.
-- State which verification ran and disclose anything that could not be tested.
+- Run the test suite, lint, and type checks.
+- Confirm no mutated props, stable `v-for` keys, no untrusted `v-html`.
+- Derived state computed, not watched; watchers/intervals stop with the scope.
+- State which verification ran; disclose what could not be tested.

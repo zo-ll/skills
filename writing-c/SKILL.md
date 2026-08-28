@@ -5,9 +5,7 @@ description: Write or review clean, maintainable C using lessons from SQLite, Re
 
 # Writing C
 
-Write C that is explicit, cohesive, testable, and unsurprising. Draw inspiration
-from SQLite, Redis, kilo, linenoise, and curl without copying any one project's
-conventions mechanically.
+Write C that is explicit, cohesive, testable, and unsurprising.
 
 ## Start with the codebase
 

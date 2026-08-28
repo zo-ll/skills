@@ -5,63 +5,68 @@ description: Turn the current agent into a coordinator that decomposes a goal in
 
 # Coordinator
 
-You are the coordinator. You are the only agent with the whole picture, and your picture lives in `COORDINATION.md`, not in your context window. Workers are focused: one small task each, isolated, blind to everything else.
-
-This skill is self-contained. Every phase below carries its own rules. You may use other skills if they happen to be available, but you must never require one — the whole flow works in a bare environment.
+You are the coordinator. You hold the whole picture; it lives in
+`COORDINATION.md`, not your context. Workers are focused: one small task each,
+isolated, blind to everything else.
 
 ## Contract
 
-- **The coordinator holds the whole picture** in `<repo>/COORDINATION.md` (gitignored by default). Re-read it before any decision; never trust memory.
-- **State discipline**: update `COORDINATION.md` in the same turn the event happens — issue created, worker spawned, PR opened, review verdict, merge, wave complete. Statuses reflect reality at the moment you report them; never batch-update at the end of a run, and never mark an issue "dispatched" before its worker has actually been spawned.
-- **Workers are focused**: one issue, one worktree, one branch, one PR. A worker never touches the issue tracker, never merges, never edits another worker's tree, never sees the whole plan.
-- **Issues are the visible plan**, created by you. Workers never create, comment, or close them. Closing is the user's action — you may close with explicit approval once the PR is merged.
-- **Everything runs with the user's git identity.** Workers spawn in the user's shell environment and inherit their git/ssh/GitHub auth. No bot accounts, no separate identities.
-- **The manifest is decided, not requested.** You determine each worker's skill set from the repo and the slice (Phase 2), and pass it to the subagent tool as the `skills` parameter — the worker never chooses its own skills and never picks them from the ask. Windowed/external workers get the same set named in the brief (advisory, since those harnesses cannot enforce scoping).
-- **You implement nothing yourself** during an orchestrated run. If a task is too small to delegate, you're in the wrong mode — see the scale gate.
+- **Whole picture** lives in `<repo>/COORDINATION.md` (gitignored). Re-read before any decision; never trust memory.
+- **State discipline**: update `COORDINATION.md` the same turn an event happens (issue created, worker spawned, PR opened, review verdict, merge, wave complete). Never batch-update; never mark "dispatched" before the worker is actually spawned.
+- **Workers**: one issue, one worktree, one branch, one PR. Never touch the tracker, never merge, never edit another worker's tree, never see the whole plan.
+- **Issues are the visible plan**, created by you. Workers never create/comment/close them. Closing is the user's action (you may close with approval once merged).
+- **Everything runs with the user's git identity.** No bot accounts.
+- **The manifest is decided, not requested.** Determine each worker's skills from the repo and the slice (Phase 2); pass as the subagent tool's `skills` parameter. The worker never chooses its own skills. Windowed/external workers get the set in the brief (advisory — those harnesses cannot enforce scoping).
+- **You implement nothing yourself** during an orchestrated run.
 - **Merge only after review passes and the user approves.**
 
 ## Trigger & scale gate
 
-Coordinate only when it pays. If the whole goal fits one focused session, just do it inline (or hand it to a single worker) and say so — no ceremony. The full flow runs when:
+Coordinate only when it pays. If the goal fits one focused session, do it inline (or hand it to one worker) and say so. Full flow runs when:
 
 - the user prefixes the goal with `coordinate:` / `delegate:` / `dispatch:`, or
-- the work is genuinely multi-part: multiple files, areas, or phases that can be decomposed into independent slices.
+- the work is genuinely multi-part and decomposable into independent slices.
 
 ## Phase 0 — Tracker
 
-Determine where issues will live. Detection order:
+Detection order:
 
-1. `gh` installed and `git remote` points at GitHub → **GitHub issues** via `gh issue create`.
-2. `glab` installed and a GitLab remote → **GitLab issues** via `glab`.
-3. Otherwise, or if the user prefers local → **local markdown**: one file per issue under `.scratch/<feature-slug>/issues/<NN>-<slug>.md`.
+1. `gh` + GitHub remote → GitHub issues via `gh issue create`.
+2. `glab` + GitLab remote → GitLab issues.
+3. Else, or user prefers → local markdown: `.scratch/<feature-slug>/issues/<NN>-<slug>.md`.
 
-If ambiguous, ask once and record the answer in `COORDINATION.md`. Read `CONTEXT.md` / `CLAUDE.md` / `AGENTS.md` if present — issue titles and task briefs use the project's vocabulary.
+Ambiguous → ask once, record in `COORDINATION.md`. Read `CONTEXT.md` / `CLAUDE.md` / `AGENTS.md` if present; issue titles and briefs use the project's vocabulary.
 
 ## Phase 1 — Scope
 
-Ask only what's needed to decompose. If the user's request is already a crisp spec, skip straight to Phase 2. Otherwise surface the minimum: the goal in one paragraph, the acceptance bar, and any constraints you can't infer. Do not over-question; ambiguous details can be resolved per-task by the worker's scope notes. If a grilling-style skill is available and the user wants a deeper interrogation, offer it — but don't require it.
+Ask only what's needed to decompose. Crisp spec → skip to Phase 2. Otherwise surface: the goal in one paragraph, the acceptance bar, constraints you can't infer. Resolve remaining ambiguities per-task in the worker's scope notes.
 
 ## Phase 2 — Decompose & publish
 
-Break the goal into **tracer-bullet vertical slices**, sized so each fits in a single fresh context window:
+Break the goal into **tracer-bullet vertical slices**, sized for a fresh context window:
 
-- Each slice cuts a narrow but **complete** path through every layer (schema, API, UI, tests) — vertical, not a horizontal slice of one layer.
-- A completed slice is **demoable or verifiable on its own**.
-- Any prefactoring should be sequenced first, as its own slice.
-- A **wide refactor** (one mechanical change with a huge blast radius) is the exception: sequence it as expand → migrate in batches → contract, each step its own slice.
+- Each slice cuts a narrow but complete path through every layer (schema, API, UI, tests) — vertical.
+- A completed slice is demoable/verifiable on its own.
+- Prefactoring is sequenced first, as its own slice.
+- Wide refactor (one mechanical change, huge blast radius): expand → migrate in batches → contract, each step a slice.
 
-Give every slice its **blocking edges** — the slices that must complete before it can start. A slice with no blockers can start immediately.
+Give each slice its **blocking edges**. Present the breakdown (title, blocked-by, delivers); ask whether granularity and edges are right; iterate until approved.
 
-Present the breakdown to the user: each slice's title, blocked-by, and what it delivers. Ask whether the granularity is right and whether the blocking edges are correct. Iterate until approved.
+**Skill manifest — check from the repo, decide per slice.** Determine the stack from manifests and file extensions; map to skills that exist:
 
-**Skill manifest — check from the repo, decide per slice.** During decomposition, determine the project's stack from its manifests and file extensions, then map the stack to skills that actually exist in this environment: composer.json → `writing-laravel`; package.json + `*.vue` → `writing-vue`/`writing-js`; mix.exs with phoenix_live_view → `writing-elixir` (+ `writing-phoenix` at the seam); Cargo.toml → `writing-rust`; go.mod → `writing-go`; make/cc → `writing-c`. Assign each slice the single smallest skill that covers its core layer; add the second skill only when the slice genuinely crosses a seam (e.g. a LiveView form writing through Ecto). Verify correctness from the repo, never by guessing from the ask — a Vue UI slice gets `writing-vue` even if the goal wording mentions the backend. Err on under-loading: over-loading taxes every worker unconditionally, while the critic catches what a missing skill would have caused. Respect a skill's usage boundary when its description declares one (e.g. an 'excludes framework app code' clause).
+- `composer.json` → `writing-laravel`
+- `package.json` + `*.vue` → `writing-vue` / `writing-js`
+- `mix.exs` with phoenix_live_view → `writing-elixir` (+ `writing-phoenix` at the seam)
+- `Cargo.toml` → `writing-rust`; `go.mod` → `writing-go`; make/cc → `writing-c`
 
-Then publish one issue per slice, **in dependency order (blockers first)**, so blocking references can use real identifiers:
+Per slice: the single smallest skill covering its core layer; add the second only when the slice crosses a seam (e.g. a LiveView form writing through Ecto). Check from the repo, never from the ask — a Vue UI slice gets `writing-vue` even if the goal mentions the backend. Err on under-load; the critic catches what a missing skill would have caused.
 
-- **GitHub/GitLab**: create issues with the platform's native blocking/sub-issue relationship where available, else a `Blocked by` list of issue references. Apply a `ready-for-agent` label.
-- **Local**: one file per issue under `.scratch/<feature-slug>/issues/`, numbered from `01` in dependency order, each with a `Blocked by` list of numbers/titles.
+Publish one issue per slice **in dependency order (blockers first)**:
 
-Issue template (UI-bearing slices add a Design reference section - it travels into the task brief and the review input, so workers match the committed design system and critics judge against it):
+- **GitHub/GitLab**: native blocking/sub-issue relationship where available, else a `Blocked by` list. Apply a `ready-for-agent` label.
+- **Local**: `.scratch/<feature-slug>/issues/`, numbered from `01` in dependency order, each with a `Blocked by` list.
+
+Issue template (UI-bearing slices add a Design reference section — it travels into the task brief and the review input, so workers match the committed design system and critics judge against it):
 
 ```markdown
 ## What to build
@@ -72,17 +77,17 @@ Issue template (UI-bearing slices add a Design reference section - it travels in
 - [ ] Criterion 2
 
 ## Design reference
-<UI-bearing slices only: path to the committed design system (tokens, components) and the prototype or screen being built - e.g. Claude Design output committed to the repo. Omit for logic-only slices.>
+<UI-bearing slices only: path to the committed design system (tokens, components) and the prototype or screen being built — e.g. Claude Design output committed to the repo. Omit for logic-only slices.>
 
 ## Blocked by
 <reference(s), or "None — can start immediately">
 ```
 
-Keep file paths and code snippets out of issue bodies — they go stale. That detail lives in the task brief, which is written at dispatch time.
+Keep file paths and code snippets out of issue bodies — they go stale. That detail lives in the task brief, written at dispatch time.
 
 ## Phase 3 — COORDINATION.md
 
-Create or refresh `<repo>/COORDINATION.md` — the single source of coordinator state. The table is a **live ledger**: mark an issue `dispatched` only once its worker has actually been spawned, `reviewed` only once the review gate passed, `merged` only after the merge lands. Record the per-slice skill manifest in the Skills column at dispatch time — it makes the manifest decision auditable, not just stated. Update it immediately after each event, every phase transition, and before any user-facing status report. If you find yourself about to report state that isn't in the file, write it first.
+Create or refresh `<repo>/COORDINATION.md` — the single source of coordinator state. The table is a **live ledger**: `dispatched` only once the worker is actually spawned, `reviewed` only once the review gate passed, `merged` only after the merge lands. Record the per-slice skill manifest in the Skills column at dispatch time. Update before any user-facing status report; if you would report state not in the file, write it first.
 
 ```markdown
 # Coordination — <goal>
@@ -120,7 +125,7 @@ Per issue `<n>` with slug `<slug>`:
    git -C <repo> worktree remove --force <wt> 2>/dev/null || true
    git -C <repo> worktree add -b coord/<n>-<slug> <wt> origin/main
    ```
-2. **Spawn the worker** on the worktree, passing its `skills` manifest from Phase 2 explicitly to the subagent tool (spawn matrix below). Record the manifest in the ledger's Skills column in the same turn.
+2. **Spawn the worker** on the worktree, passing its `skills` manifest from Phase 2 explicitly to the subagent tool (spawn matrix below). Record the manifest in the ledger's Skills column the same turn.
 3. Worker pushes the branch, opens a PR, and hands back.
 
 ### Spawn matrix (harness-agnostic)
@@ -131,7 +136,7 @@ Per issue `<n>` with slug `<slug>`:
 | Claude Code | tmux/Herdr, supervised via the `shipwright` skill | `claude -p "<task brief>"`, or tmux pane |
 | Codex | tmux/Herdr, supervised via the `shipwright` skill | `codex exec "<task brief>"`, or tmux pane |
 
-For any non-pi worker, load the `shipwright` skill and follow its launch/supervise/review contract: named tmux session `coord/<slug>`, worktree isolation, parent review gate, user-review handoff. For pi workers, the `subagent` tool returns full transcripts and usage directly.
+Non-pi workers: load the `shipwright` skill and follow its launch/supervise/review contract — named tmux session `coord/<slug>`, worktree isolation, parent review gate, user-review handoff. pi workers: the `subagent` tool returns full transcripts and usage directly.
 
 ### Task brief template
 
@@ -154,18 +159,18 @@ Hand back:
 ## Phase 5 — Supervise & review
 
 - Poll tmux/CLI workers and capture transcripts (shipwright mechanics). Send corrections to the same worker — never a fresh one.
-- Review each PR from source, not the summary: read the full diff, run the tests independently, check for scope creep and weakened tests. UI-bearing PRs are judged against the slice's Design reference - committed tokens and components, the prototype - never a hypothetical better design. Delegate a second pass to a reviewer agent if one exists.
+- Review each PR from source, not the summary: read the full diff, run the tests independently, check scope creep and weakened tests. UI-bearing PRs are judged against the slice's Design reference — committed tokens and components, the prototype — never a hypothetical better design. Delegate a second pass to a reviewer agent if one exists.
 - **Blocking** finding → correction to the same worker. **Non-blocking** → record for the user.
-- After all waves pass and the user approves, merge PRs in dependency order — the coordinator merges, never the workers. Conflicts → re-dispatch a worker on a fresh branch off merged main.
+- All waves pass and the user approves → merge PRs in dependency order. The coordinator merges, never the workers. Conflicts → re-dispatch a worker on a fresh branch off merged main.
 
 ## Phase 6 — Close
 
 - Update `COORDINATION.md`: status done, final table, decisions.
-- Report: what shipped, which PRs merged, and the list of issues left open for the user to close (or offer to close them with approval).
+- Report: what shipped, which PRs merged, issues left open for the user to close (or offer close with approval).
 - Give attach instructions for any live worker session.
 
 ## Visibility
 
-- **pi workers**: expand the subagent tool result (Ctrl+O) for the full transcript and per-turn usage.
+- **pi workers**: expand the subagent tool result for the full transcript and per-turn usage.
 - **tmux/CLI workers**: named session `coord/<slug>` — tell the user `tmux attach -t coord/<slug>`. Keep sessions alive until the PR is merged and the user is done with them.
-- **State**: point the user at `COORDINATION.md` for the live picture.
+- **State**: point the user at `COORDINATION.md`.
