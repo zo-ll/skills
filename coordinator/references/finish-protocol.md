@@ -1,49 +1,45 @@
 # Finish protocol (workers and reviewers ping the coordinator)
 
-Adopt this for EVERY completed turn (task done, checkpoint, correction, or
-review verdict). There is no watcher and no polling — the coordinator reads
-markers on demand; the ping is the real signal.
+Unified and harness-agnostic: every completed turn — from pi, Claude Code,
+Codex, or any future harness — uses the SAME ping channel (the inbox relay)
+and the SAME durable marker. Two artifacts per finish:
 
-## 1. PING THE COORDINATOR — prompt them the same way they prompt you (PRIMARY)
-
-Write a MINI prompt (one line) and paste it into the coordinator pane, exactly
-like the coordinator does with you:
-
-    printf '<your-role>: finished <task-slug> <one-line summary>\n' > /tmp/shipwright/ping.txt
-    <shipwright scripts>/tmux-agent.sh \
-      prompt-target <session>:coordinator.pane /tmp/shipwright/ping.txt pi
-
-Example mini prompt line:
-
-    critic: finished 13-ui-chrome re-review pass Starting asserted gate 57 tests
-
-A prompt in the coordinator's CONVERSATION cannot be missed — it becomes the
-coordinator's next turn.
-
-### Sandboxed workers (no tmux access)
-
-If tmux is unreachable from your sandbox (e.g. codex under workspace-write),
-ping via the inbox relay instead: write ONE line to a NEW file under
-/tmp/shipwright/inbox/:
+## 1. Ping — write ONE line to the inbox (ALL harnesses)
 
     printf '<your-role>: finished <task-slug> <one-line summary>\n' \
       > /tmp/shipwright/inbox/<task-slug>.ping
 
-The relay (see coordinator skill `scripts/relay.sh`) delivers that single
-line into the coordinator's conversation and consumes it. Never write
-multi-line content to the inbox.
+- NEW filename per finish (the relay consumes each file after delivering it
+  into the coordinator's conversation).
+- ONE line only — never multi-line content.
+- This works for every harness because writing a file is the one capability
+  every coding agent has, including sandboxed ones (codex under
+  workspace-write is proven to reach /tmp/shipwright/inbox/).
 
-## 2. Write a status marker (durable record, ALWAYS)
+The relay (coordinator skill `scripts/relay.sh`, run in a relay window,
+outside all sandboxes) delivers that single line into the coordinator's
+conversation — the coordinator's next turn starts with it.
+
+## 2. Marker — durable record, ALWAYS
 
     <your current checkout>/.scratch/status/<task-slug>.done
 
-ONE line, this exact shape:
+ONE line:
 
     done TS=<YYYY-MM-DD HH:MM:SS> TASK=<task-slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=<one-line summary>
 
-`.scratch/` is gitignored. Always write it — it is the durable record even
-when the ping path works.
+`.scratch/` is gitignored. Always write it — it is the durable,
+tag/timestamp-queryable record and the cross-check for the ping.
 
-## 3. Then hand back normally
+## 3. Hand back normally
 
-Write your usual final handoff in your pane.
+Write your usual final handoff in your pane (task report, verdict, etc.).
+
+---
+
+Coordinator side:
+- The relay window runs the skill's `scripts/relay.sh`.
+- Standing order: the coordinator reads markers (`.scratch/status/*.done`)
+  first thing every turn — before any status report or decision.
+- Coordinator→worker direction (assignments, corrections, review pointers)
+  stays exactly as is (`prompt-target` into the worker pane).

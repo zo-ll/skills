@@ -184,21 +184,18 @@ timestamp.
    own writable checkout (gitignored):
    `<checkout>/.scratch/status/<task-slug>.done`
    content: `done TS=<YYYY-MM-DD HH:MM:SS> TASK=<task-slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=<one line>`
-2. **PRIMARY ping — the worker prompts the coordinator**, using the exact
-   same `prompt-target` mechanism the coordinator uses on them: a one-line
-   mini prompt (`<role>: finished <task-slug> <summary>`) is pasted into the
-   coordinator pane (`prompt-target <session>:coordinator.pane <ping-file> pi`).
-   A prompt in the coordinator's CONVERSATION cannot be missed — it becomes the
-   coordinator's next turn. Sandboxed workers who cannot reach tmux write
-   their one-line mini prompt to `/tmp/shipwright/inbox/<task-slug>.ping`; the
-   inbox relay (`scripts/relay.sh`, run in a relay window) delivers it into the
-   coordinator conversation — same effect as the direct prompt.
-   The full spec lives in `references/finish-protocol.md`.
+2. **Ping — ONE channel for every harness**: the worker/reviewer writes ONE
+   line to `/tmp/shipwright/inbox/<task-slug>.ping` (new file per finish);
+   the inbox relay (`scripts/relay.sh`, run in a relay window outside all
+   sandboxes) delivers it into the coordinator's CONVERSATION — the
+   coordinator's next turn starts with it. Harness-agnostic: writing a file
+   is the one capability every coding agent has (pi, Claude Code, Codex,
+   any sandboxed or headless future harness). The full spec lives in
+   `references/finish-protocol.md`.
 3. **Standing order**: the coordinator reads markers
    (`.scratch/status/*.done`) first thing every turn — before any status
-   report or decision — so a marker-only signal is still picked up. Never
-   report “no news” without checking first.
-4. **Tag/timestamp discipline**: marker filename, and the mini prompt both
+   report or decision. Never report “no news” without checking first.
+4. **Tag/timestamp discipline**: marker filename and the mini prompt both
    carry the task slug + time so a fresh session or the human can recognize
    any task's finish at a glance.
 
