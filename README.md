@@ -21,6 +21,13 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
   researching existing solutions, trying to disprove the premise, and proposing
   cheaper alternatives.
 - `work-report/` — full grounded report of session/branch work.
+- `ponytail/` — laziest solution that works: YAGNI, stdlib/native first, one
+  line over fifty (levels: lite/full/ultra). [dietrichgebert/ponytail]
+- `ponytail-audit/` — whole-repo audit for over-engineering, ranked delete-list.
+- `ponytail-debt/` — harvest deferred `ponytail:` shortcut comments into a ledger.
+- `ponytail-gain/` — measured impact scoreboard (less code/cost/time).
+- `ponytail-help/` — quick reference for the ponytail modes and commands.
+- `ponytail-review/` — code review hunting only over-engineering (what to cut).
 - `writing-c/` — clean, maintainable C.
 - `writing-elixir/` — Elixir/OTP/Ecto base (stack-agnostic).
 - `writing-go/` — idiomatic Go.
