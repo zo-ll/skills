@@ -36,7 +36,15 @@ Supervise one worker in a persistent multiplexer. Either launch it in an isolate
 scripts/worktree.sh create "$REPO" "$TASK_ID" "$BASE_REF"
 ```
 
-5. Create a task prompt outside the repository. Use the contract in [references/task-contract.md](references/task-contract.md). In attach mode, account for work already performed and avoid reissuing completed work. Include the resolved checkout and relevant source paths.
+5. Create a task state directory and a task prompt outside the repository:
+
+    ```bash
+    STATE_DIR="$(scripts/state-dir.sh path "$REPO" "$TASK_ID")"   # ${TMPDIR:-/tmp}/shipwright/<repo>/<task-id>
+    mkdir -p "$STATE_DIR"
+    # store task.md, correction-N.md, usage.txt, handoff.md here
+    ```
+
+    Use the contract in [references/task-contract.md](references/task-contract.md). In attach mode, account for work already performed and avoid reissuing completed work. Include the resolved checkout and relevant source paths.
 6. Read [references/multiplexers.md](references/multiplexers.md), then select Herdr or tmux. Read [references/harnesses.md](references/harnesses.md) for the selected agent CLI.
 
 ## Attach to a running worker
@@ -149,7 +157,8 @@ tmux attach-session -t "$SESSION"
 - Do not edit the worker's files to rescue it while it is running. Give it the missing context or stop and restart deliberately.
 - Route user design feedback and parent review findings back into the same attached conversation. Do not create a new worker window for follow-ups merely to obtain cleaner logs.
 - Require a final handoff containing changed files, behavior, tests run, remaining risks, and any deviations from the task.
-- For full-screen agents whose transcript is incomplete, instruct the worker to write its handoff to the task state directory, then read that file directly.
+- Require a completion marker BEFORE the handoff so completion is observable without polling: the worker writes `<checkout>/.scratch/status/<task-slug>.done` (one line: `done TS=<YYYY-MM-DD HH:MM:SS> TASK=<slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=<...>`) and pings the coordinator with a one-line mini prompt (`<role>: finished <task-slug> <summary>`) via the same `prompt-target` mechanism the coordinator uses.
+- For full-screen agents whose transcript is incomplete, instruct the worker to write its handoff to `$STATE_DIR/handoff.md`, then read that file directly.
 
 ## Parent review gate
 
@@ -189,4 +198,4 @@ Do not imply integration already occurred. Keep the multiplexer and worktree ali
 - On requested changes, send a new prompt to the same Herdr agent or a new tmux correction window, then repeat the parent gate.
 - On approval, integrate only through the repository's preferred process and only with user authorization.
 - After integration is verified, close a Shipwright-created workspace/session and remove its worktree with `scripts/worktree.sh remove`. The removal script refuses dirty worktrees. Leave attached user-owned agents, panes, sessions, and checkouts running and intact unless the user explicitly asks to close them.
-- Retain task prompts, logs, and review evidence until integration is complete; then remove temporary state deliberately.
+- Retain task prompts, logs, and review evidence until integration is complete; then remove temporary state deliberately: `scripts/state-dir.sh remove "$REPO" "$TASK_ID"`.

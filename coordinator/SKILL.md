@@ -158,6 +158,9 @@ Build/test: <exact commands and expected results>
 Done when: <acceptance criteria from the issue>
 Constraints: work only in this worktree; never run gh issue commands; never merge or push to main;
 commit and push your branch; open a PR against main.
+Finish protocol: when your turn is finished, write `<checkout>/.scratch/status/<task-slug>.done` (one
+line: `done TS=<YYYY-MM-DD HH:MM:SS> TASK=<slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=<...>`) and best-effort ping the
+coordinator window, BEFORE your handoff text (see coordinator skill Phase 5b).
 Hand back:
 ## Completed
 ## Files Changed
@@ -170,6 +173,34 @@ Hand back:
 - Review each PR from source, not the summary: read the full diff, run the tests independently, check scope creep and weakened tests. UI-bearing PRs are judged against the slice's Design reference — committed tokens and components, the prototype — never a hypothetical better design. Delegate a second pass to a reviewer agent if one exists.
 - **Blocking** finding → correction to the same worker. **Non-blocking** → record for the user.
 - All waves pass and the user approves → merge PRs in dependency order. The coordinator merges, never the workers. Conflicts → re-dispatch a worker on a fresh branch off merged main.
+
+## Phase 5b — Finish protocol (workers ping the coordinator, no polling)
+
+Workers and reviewers confirm completion with a marker AND a direct prompt to
+the coordinator, so a finish is never missed and is recognizable by task tag +
+timestamp.
+
+1. **Marker (durable record)**: every finished turn writes ONE line into its
+   own writable checkout (gitignored):
+   `<checkout>/.scratch/status/<task-slug>.done`
+   content: `done TS=<YYYY-MM-DD HH:MM:SS> TASK=<task-slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=<one line>`
+2. **PRIMARY ping — the worker prompts the coordinator**, using the exact
+   same `prompt-target` mechanism the coordinator uses on them: a one-line
+   mini prompt (`<role>: finished <task-slug> <summary>`) is pasted into the
+   coordinator pane (`prompt-target <session>:coordinator.pane <ping-file> pi`).
+   A prompt in the coordinator's CONVERSATION cannot be missed — it becomes the
+   coordinator's next turn. Sandboxed workers who cannot reach tmux write
+   their one-line mini prompt to `/tmp/shipwright/inbox/<task-slug>.ping`; the
+   inbox relay (`scripts/relay.sh`, run in a relay window) delivers it into the
+   coordinator conversation — same effect as the direct prompt.
+   The full spec lives in `references/finish-protocol.md`.
+3. **Standing order**: the coordinator reads markers
+   (`.scratch/status/*.done`) first thing every turn — before any status
+   report or decision — so a marker-only signal is still picked up. Never
+   report “no news” without checking first.
+4. **Tag/timestamp discipline**: marker filename, and the mini prompt both
+   carry the task slug + time so a fresh session or the human can recognize
+   any task's finish at a glance.
 
 ## Phase 6 — Close
 
