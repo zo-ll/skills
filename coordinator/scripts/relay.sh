@@ -4,8 +4,11 @@
 # - new-files-only, consumed once after delivery (no stale re-fires)
 # - single line only (no multiline corruption)
 # - guarded: only when the coordinator pane's foreground command is `pi`
-# Usage: start in a tmux window, e.g.
+# Usage: run DETACHED (recommended), e.g.
+#   setsid nohup <this script> >/dev/null 2>&1 &   (pid -> /tmp/shipwright/relay.pid)
+# or in a tmux window during debugging:
 #   tmux new-window -d -t <session> -n relay -c /tmp/shipwright '<this script>'
+# All activity is logged to /tmp/shipwright/relay.log for inspection.
 INBOX=/tmp/shipwright/inbox
 LOG=/tmp/shipwright/relay.log
 COORD_PANE="${TERMDECK_COORD_PANE:-personal:coordinator.0}"
