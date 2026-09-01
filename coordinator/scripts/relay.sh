@@ -22,7 +22,8 @@ while true; do
     if [ "$cmd" = "pi" ]; then
       ts="$(date '+%Y-%m-%d %H:%M:%S')"
       printf '%s DELIVER %-22s :: %s\n' "$ts" "$(basename "$f" .ping)" "$content" | tee -a "$LOG"
-      tmux send-keys -t "$COORD_PANE" -l "$content" Enter 2>/dev/null || true
+      tmux send-keys -t "$COORD_PANE" -l "$content" 2>/dev/null || true
+      tmux send-keys -t "$COORD_PANE" Enter 2>/dev/null || true
       rm -f "$f"
     fi
     # if the pane is not pi, leave the file and retry next pass
