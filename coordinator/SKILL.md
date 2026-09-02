@@ -85,9 +85,14 @@ Issue template (UI-bearing slices add a Design reference section — it travels 
 
 Keep file paths and code snippets out of issue bodies — they go stale. That detail lives in the task brief, written at dispatch time.
 
-## Phase 3 — COORDINATION.md
+## Phase 3 — COORDINATION.md (live dashboard + rotational journal)
 
-Create or refresh `<repo>/COORDINATION.md` — the single source of coordinator state. The table is a **live ledger**: `dispatched` only once the worker is actually spawned, `reviewed` only once the review gate passed, `merged` only after the merge lands. Record the per-slice skill manifest in the Skills column at dispatch time. Update before any user-facing status report; if you would report state not in the file, write it first.
+Create or refresh `<repo>/COORDINATION.md` — the single source of LIVE
+coordinator state. The table is a **live ledger**: `dispatched` only once the
+worker is actually spawned, `reviewed` only once the review gate passed,
+`merged` only after the merge lands. Record the per-slice skill manifest in
+the Skills column at dispatch time. Update before any user-facing status
+report; if you would report state not in the file, write it first.
 
 ```markdown
 # Coordination — <goal>
@@ -110,8 +115,37 @@ Status: active | paused | done
 <what was decided and why, enough for a fresh session to resume>
 
 ## Handoffs
-<where worker handoffs / transcripts live>
+<the LAST ~15 events only — older ones rotate into the journal>
 ```
+
+**Keep it a dashboard, not a diary.** `COORDINATION.md` holds only current,
+live state (status, table, waves, decisions) plus the most recent ~15 handoff
+bullets. When adding a new handoff bullet pushes the list past that, EVICT the
+oldest bullets — they go to the journal, never get deleted.
+
+### Journal (the durable history)
+
+Archive root: `<repo>/.coordinator/journal/`, files `history-YYYY-MM.md`
+(one per month). COMMIT and push the journal with the repo — a journal inside
+gitignored `.scratch/` would violate durable resumption (RESUME.md treats
+`.scratch/` as disposable). The directory is hidden (`.coordinator/`) but
+TRACKED, so history survives machines and reboots and can be queried with
+`rg`/`read` (`rg "<issue>|<date>" <repo>/.coordinator/journal/`). Obsidian is
+an OPTIONAL viewer only: the files are plain markdown with `#` titles, ISO
+dash dates, `#tag` tags, and issue links — a vault can point at
+`<repo>/.coordinator/journal/`; the coordination loop never depends on it.
+
+Rotation rule (apply when updating Handoffs):
+1. Count `## Handoffs` bullets; if > ~15, compute the evicted tail (oldest).
+2. Append each evicted bullet to the month file, e.g.
+   `- YYYY-MM-DD #<issue>: <short event> (worker/role, PR if any)`.
+3. Remove it from COORDINATION.md. Nothing is ever lost.
+4. Same rotation applies to any long-lived append-only section (e.g.
+   repeated "Next" notes), if it grows past a readable size.
+
+The on-ramp for a fresh session stays: read AGENTS.md, COORDINATION.md,
+docs/PLAN.md, DESIGN, workstreams — and then query the journal only when you
+need deeper history.
 
 ## Phase 4 — Dispatch in waves
 
