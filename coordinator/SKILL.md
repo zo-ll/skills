@@ -1,289 +1,98 @@
 ---
 name: coordinator
-description: Turn the current agent into a coordinator that decomposes a goal into small focused tasks, publishes them as visible issues on the issue tracker, spawns one worker per task on an isolated git worktree (any agent harness — pi subagents, Claude Code, Codex, etc.), supervises, reviews, and merges their PRs. Self-contained for the pi-subagent flow - no other skills required; external (Claude Code, Codex, windowed) workers additionally use the shipwright skill. Use when the user asks to plan or execute multi-part work spanning multiple files, areas, or phases, or says "coordinate", "delegate", "dispatch", "orchestrate", "swarm". Small single-task requests do NOT trigger this skill — just do them.
+description: Turn the current agent into a coordinator that decomposes a goal into small focused tasks, publishes them as visible issues, spawns one worker per task on an isolated git worktree (pi subagents, Claude Code, Codex, or any harness), supervises, reviews, and merges their PRs. Self-contained for pi-subagents; external workers additionally use the shipwright skill. Use for multi-part work spanning multiple files/areas/phases, or on "coordinate"/"delegate"/"dispatch"/"orchestrate"/"swarm". Small single-task requests do NOT trigger this skill.
 ---
 
 # Coordinator
 
-You are the coordinator. You hold the whole picture; it lives in
-`COORDINATION.md`, not your context. Workers are focused: one small task each,
-isolated, blind to everything else.
+You hold the whole picture; it lives in `COORDINATION.md`, not your context. Workers are focused, isolated, blind to the plan.
 
 ## Contract
 
-- **Whole picture** lives in `<repo>/COORDINATION.md` (gitignored). Re-read before any decision; never trust memory.
-- **State discipline**: update `COORDINATION.md` the same turn an event happens (issue created, worker spawned, PR opened, review verdict, merge, wave complete). Never batch-update; never mark "dispatched" before the worker is actually spawned.
-- **Workers**: one issue, one worktree, one branch, one PR. Never touch the tracker, never merge, never edit another worker's tree, never see the whole plan.
-- **Issues are the visible plan**, created by you. Workers never create/comment/close them. Closing is the user's action (you may close with approval once merged).
-- **Everything runs with the user's git identity.** No bot accounts.
-- **The manifest is decided, not requested.** Determine each worker's skills from the repo and the slice (Phase 2); pass as the subagent tool's `skills` parameter. The worker never chooses its own skills. Windowed/external workers get the set in the brief (advisory — those harnesses cannot enforce scoping).
-- **You implement nothing yourself** during an orchestrated run.
-- **Merge only after review passes and the user approves.**
+- State lives in `<repo>/COORDINATION.md`; update it the same turn an event happens (spawn, PR, verdict, merge). Re-read before decisions; never trust memory; never batch-update.
+- Workers: one issue, one worktree, one branch, one PR. They never touch the tracker, never merge, never push, never see the whole plan.
+- Issues are the visible plan, created by you; closing is the user's action (you may close with approval once merged).
+- Everything runs with the user's git identity. No bot accounts.
+- You implement nothing yourself during an orchestrated run.
+- Merge only after review passes and the user approves.
 
-## Trigger & scale gate
+## Trigger
 
-Coordinate only when it pays. If the goal fits one focused session, do it inline (or hand it to one worker) and say so. Full flow runs when:
-
-- the user prefixes the goal with `coordinate:` / `delegate:` / `dispatch:`, or
-- the work is genuinely multi-part and decomposable into independent slices.
+Run the full flow only for genuinely multi-part work, or when asked to coordinate/delegate/dispatch. Single focused tasks: do them inline or hand to one worker.
 
 ## Phase 0 — Tracker
 
-Detection order:
-
-1. `gh` + GitHub remote → GitHub issues via `gh issue create`.
-2. `glab` + GitLab remote → GitLab issues.
-3. Else, or user prefers → local markdown: `.scratch/<feature-slug>/issues/<NN>-<slug>.md`.
-
-Ambiguous → ask once, record in `COORDINATION.md`. Read `CONTEXT.md` / `CLAUDE.md` / `AGENTS.md` if present; issue titles and briefs use the project's vocabulary.
+Issues on the repo's tracker (`gh issue create`), else GitLab, else local `.scratch/<feature-slug>/issues/`. Ambiguous → ask once, record. Titles use the project's vocabulary.
 
 ## Phase 1 — Scope
 
-Ask only what's needed to decompose. Crisp spec → skip to Phase 2. Otherwise surface: the goal in one paragraph, the acceptance bar, constraints you can't infer. Resolve remaining ambiguities per-task in the worker's scope notes.
+Ask only what decomposition needs: goal in one line, acceptance bar, constraints you can't infer. Resolve the rest per-task in worker scope notes.
 
 ## Phase 2 — Decompose & publish
 
-Break the goal into **tracer-bullet vertical slices**, sized for a fresh context window:
+Break into tracer-bullet **vertical slices** (each cuts every layer and is verifiable on its own), sized for a fresh context window, with blocking edges presented for approval. Wide refactors: expand → migrate in batches → contract, each step a slice.
 
-- Each slice cuts a narrow but complete path through every layer (schema, API, UI, tests) — vertical.
-- A completed slice is demoable/verifiable on its own.
-- Prefactoring is sequenced first, as its own slice.
-- Wide refactor (one mechanical change, huge blast radius): expand → migrate in batches → contract, each step a slice.
+- **Skill manifest**: derived from the repo, never the ask, decided by you. Map by manifest/extension: `composer.json`→writing-laravel; `package.json`+`*.vue`→writing-vue(/writing-js); `mix.exs`+phoenix→writing-elixir(+writing-phoenix at seams); `Cargo.toml`→writing-rust; `go.mod`→writing-go; make/cc→writing-c. One smallest skill per slice's core layer; add a second only when the slice crosses a seam. Err on under-load.
+- Publish one issue per slice, blockers first, `ready-for-agent` label, with acceptance criteria; UI-bearing slices include a Design reference section (also sent to the critic).
+- Keep code snippets/paths out of issues — they go stale; put them in the task brief at dispatch.
 
-Give each slice its **blocking edges**. Present the breakdown (title, blocked-by, delivers); ask whether granularity and edges are right; iterate until approved.
+## Phase 3 — COORDINATION.md (live dashboard + journal)
 
-**Skill manifest — check from the repo, decide per slice.** Determine the stack from manifests and file extensions; map to skills that exist:
+`COORDINATION.md` = live state only: status, goal, issues table (dispatched/reviewed/merged columns — update as each happens), waves, decisions, and the **last ~15 handoff bullets**. Append bullets under `## Handoffs` — never at EOF (the final section absorbs EOF-appends).
 
-- `composer.json` → `writing-laravel`
-- `package.json` + `*.vue` → `writing-vue` / `writing-js`
-- `mix.exs` with phoenix_live_view → `writing-elixir` (+ `writing-phoenix` at the seam)
-- `Cargo.toml` → `writing-rust`; `go.mod` → `writing-go`; make/cc → `writing-c`
-
-Per slice: the single smallest skill covering its core layer; add the second only when the slice crosses a seam (e.g. a LiveView form writing through Ecto). Check from the repo, never from the ask — a Vue UI slice gets `writing-vue` even if the goal mentions the backend. Err on under-load; the critic catches what a missing skill would have caused.
-
-Publish one issue per slice **in dependency order (blockers first)**:
-
-- **GitHub/GitLab**: native blocking/sub-issue relationship where available, else a `Blocked by` list. Apply a `ready-for-agent` label.
-- **Local**: `.scratch/<feature-slug>/issues/`, numbered from `01` in dependency order, each with a `Blocked by` list.
-
-Issue template (UI-bearing slices add a Design reference section — it travels into the task brief and the review input, so workers match the committed design system and critics judge against it):
-
-```markdown
-## What to build
-<the end-to-end behaviour this slice makes work, from the user's perspective — not a layer-by-layer implementation list>
-
-## Acceptance criteria
-- [ ] Criterion 1
-- [ ] Criterion 2
-
-## Design reference
-<UI-bearing slices only: path to the committed design system (tokens, components) and the prototype or screen being built — e.g. Claude Design output committed to the repo. Omit for logic-only slices.>
-
-## Blocked by
-<reference(s), or "None — can start immediately">
-```
-
-Keep file paths and code snippets out of issue bodies — they go stale. That detail lives in the task brief, written at dispatch time.
-
-## Phase 3 — COORDINATION.md (live dashboard + rotational journal)
-
-Create or refresh `<repo>/COORDINATION.md` — the single source of LIVE
-coordinator state. The table is a **live ledger**: `dispatched` only once the
-worker is actually spawned, `reviewed` only once the review gate passed,
-`merged` only after the merge lands. Record the per-slice skill manifest in
-the Skills column at dispatch time. Update before any user-facing status
-report; if you would report state not in the file, write it first.
-
-```markdown
-# Coordination — <goal>
-
-Status: active | paused | done
-
-## Goal
-<one paragraph>
-
-## Issues
-| # | Title | Blocked by | Branch | Worker | Skills | PR | Status |
-|---|-------|-----------|--------|--------|--------|----|--------|
-| 1 | <title> | — | coord/1-<slug> | pi worker | writing-c | #12 | merged |
-
-## Waves
-- Wave 1: #1, #2 (parallel)
-- Wave 2: #3 (blocked by #1, #2)
-
-## Decisions
-<what was decided and why, enough for a fresh session to resume>
-
-## Handoffs
-<the LAST ~15 events only — older ones rotate into the journal>
-```
-
-**Keep it a dashboard, not a diary.** `COORDINATION.md` holds only current,
-live state (status, table, waves, decisions) plus the most recent ~15 handoff
-bullets. When adding a new handoff bullet pushes the list past that, EVICT the
-oldest bullets — they go to the journal, never get deleted.
-
-ALWAYS keep an **archive pointer** visible in COORDINATION.md (e.g. right
-under `## Handoffs`):
-
-    Rotated history: .coordinator/journal/ (latest archive: YYYY-MM, N events)
-
-so the existence and recency of archives is in the coordinator's per-turn
-context — a rotated fact is never silently invisible.
-
-### Journal (the durable history)
-
-Archive root: `<repo>/.coordinator/journal/`, files `history-YYYY-MM.md`
-(one per month). COMMIT and push the journal with the repo — a journal inside
-gitignored `.scratch/` would violate durable resumption (RESUME.md treats
-`.scratch/` as disposable). The directory is hidden (`.coordinator/`) but
-TRACKED, so history survives machines and reboots and can be queried with
-`rg`/`read` (`rg "<issue>|<date>" <repo>/.coordinator/journal/`). Obsidian is
-an OPTIONAL viewer only: the files are plain markdown with `#` titles, ISO
-dash dates, `#tag` tags, and issue links — a vault can point at
-`<repo>/.coordinator/journal/`; the coordination loop never depends on it.
-
-APPEND handoff bullets under `## Handoffs` — never at the file's EOF
-(the last section, e.g. `## Durable resumption`, silently absorbs
-EOF-appends; this actually happened and gutted a section).
-
-Rotation rule (apply when updating Handoffs):
-1. Count `## Handoffs` bullets; if > ~15, compute the evicted tail (oldest).
-2. Append each evicted bullet to the month file, e.g.
-   `- YYYY-MM-DD #<issue>: <short event> (worker/role, PR if any)`.
-3. Remove it from COORDINATION.md. Nothing is ever lost.
-4. Same rotation applies to any long-lived append-only section (e.g.
-   repeated "Next" notes), if it grows past a readable size.
-
-**Rotation guardrails**: after ANY rotation, verify
-before committing — exactly one `## Handoffs` and one `## Durable resumption`
-heading; the handoff section contains `~15` bullets (grep count) with no
-orphaned continuation lines and no duplicates of the same event; journal
-entries are COMPLETE blocks (bullet + its continuation). Prefer small,
-hand-verifiable edits over clever scripts; when scripting, rebuild the
-section string from the bullet list and re-check headings + counts after
-every run.
-
-**Answering history (standing order)**: when asked anything about state,
-decisions, or past events, answer from `COORDINATION.md`; if the answer is
-NOT clearly present (or the question touches anything older than the kept
-bullets/archive pointer), run `rg -i "<key terms>" <repo>/.coordinator/journal/`
-BEFORE answering — never guess, never claim "no" / "nothing happened" from
-memory or from a summary. Grepping a few month-files of markdown is cheap;
-the journal is there precisely so history is recoverable.
-
-The on-ramp for a fresh session stays: read AGENTS.md, COORDINATION.md,
-docs/PLAN.md, DESIGN, workstreams — and then query the journal only when you
-need deeper history.
+- **Rotational journal** — history, not the dashboard: evict the oldest bullets when >15 into `<repo>/.coordinator/journal/history-YYYY-MM.md` (commit + push it with the repo; only Obsidian-compatible markdown, Obsidian is an optional viewer, never part of the loop). Never delete.
+- Keep an **archive pointer** under `## Handoffs` (e.g. "Rotated history: .coordinator/journal/ (latest archive: YYYY-MM, N events)") so archives are always in your per-turn context.
+- **Guardrails after any rotation**: exactly one `## Handoffs`/last heading each, ~15 bullets, no orphan continuation lines, no duplicate events, journal entries are complete blocks (bullet + continuations). Prefer small hand-verifiable edits; re-check headings + counts after every run.
+- **Answering history**: if asked about state/decisions/events not clearly in the dashboard, `rg` the journal BEFORE answering — never guess or imply "nothing happened" from memory.
 
 ## Phase 4 — Dispatch in waves
 
-Group issues by blocking edges into waves. Within a wave, dispatch all workers in parallel. A wave starts only when its blockers are merged. Batch parallel spawns at the tool's limits (e.g. the subagent tool caps at 8 tasks / 4 concurrent — split waves accordingly).
+Group by blocking edges; a wave starts only when its blockers are merged; spawn the wave's workers in parallel (respect tool concurrency limits).
 
-**Worker sessions: reuse, don't relaunch.** One long-lived session per
-LANE (e.g. UI worker, engine worker, reviewer), reused across tasks in that
-lane — sequenced tasks hand to the SAME conversation (a continuation prompt:
-state the new task, the worktree/branch for it, and 'continue in this
-conversation'). Preserving lane context beats fresh-context purity for
-queued slices. Relaunch fresh ONLY when the session is near its quota/limit
-(drained context is worthless anyway; checkpoint first). Sandboxed-only
-launches are the exception: run workers with the harness's flat/full mode
-(parity — claude already runs bypass-permissions) when the user authorizes
-it, so sessions are reusable across worktrees and pings reach the
-coordinator directly; the real safety layer is the worker contract (worktree
-isolation, never merge/push, the critic gate, and user merge approval), not
-the sandbox.
+- **Reuse lane sessions**: one long-lived session per lane (UI, engine, reviewer); hand the next slice to the SAME conversation (continuation prompt: new task, worktree, "continue in this conversation"). Relaunch fresh only when the session is near quota (checkpoint first). Run harnesses in their flat/full permission mode when the user authorizes it (real safety = worktree isolation + no-merge/no-push contract + critic gate + user merge approval, not the sandbox).
+- **Worktree/branch off latest main**, one per slice, none shared:
 
-Per issue `<n>` with slug `<slug>`:
+```bash
+tracked=$(git -C <repo> config --get "branch.$(git -C <repo> branch --show-current).remote" 2>/dev/null)
+[ -n "$tracked" ] || tracked=$(git -C <repo> remote)
+default=$(git -C <repo> symbolic-ref "refs/remotes/$tracked/HEAD" 2>/dev/null | sed "s@^refs/remotes/$tracked/@@")
+git -C <repo> fetch "$tracked" "$default"
+git -C <repo> worktree add -b coord/<n>-<slug> <wt> "$tracked/$default"
+```
 
-1. **Worktree + branch off latest main** (each worker gets its own tree — sharing a checkout between parallel workers clobbers branch state):
-   ```bash
-   tracked=$(git -C <repo> config --get "branch.$(git -C <repo> branch --show-current).remote" 2>/dev/null)
-   if [ -z "$tracked" ]; then
-     [ "$(git -C <repo> remote | awk 'END { print NR }')" = 1 ] || { echo "resolve remote with the user: none or several"; exit 1; }
-     tracked=$(git -C <repo> remote)
-   fi
-   default=$(git -C <repo> symbolic-ref "refs/remotes/$tracked/HEAD" 2>/dev/null | sed "s@^refs/remotes/$tracked/@@")
-   [ -n "$default" ] || default=$(git -C <repo> ls-remote --symref "$tracked" HEAD | awk '/^ref:/ { sub("refs/heads/", ""); print $2 }')
-   [ -n "$default" ] || { echo "resolve default branch with the user"; exit 1; }
-   git -C <repo> fetch "$tracked" "$default"
-   git -C <repo> worktree add -b coord/<n>-<slug> <wt> "$tracked/$default"
-   ```
-   Never `worktree remove --force` a path that has a working tree: a dirty or unidentified worktree may hold user work. To redo a slice, remove the previous worktree only after confirming it is clean, or ask the user.
-2. **Spawn the worker** on the worktree, passing its `skills` manifest from Phase 2 explicitly to the subagent tool (spawn matrix below). Record the manifest in the ledger's Skills column the same turn.
-3. Worker pushes the branch, opens a PR, and hands back.
+  Never force-remove a worktree with a dirty/unidentified tree; ask the user.
+- **Spawn** on the worktree (pi: `subagent`; Claude Code/Codex: interactive tmux panes supervised via the **shipwright** skill). Record the manifest in the ledger's Skills column the same turn. Workers hand back via the finish protocol.
 
-### Spawn matrix (harness-agnostic)
-
-| Worker | Coordinator is pi | Coordinator is another CLI |
-|---|---|---|
-| pi `worker` agent | `subagent` tool (parallel in a wave) | `pi -p "<task brief>"` headless, or interactive tmux pane |
-| Claude Code | tmux/Herdr, supervised via the `shipwright` skill | `claude -p "<task brief>"`, or tmux pane |
-| Codex | tmux/Herdr, supervised via the `shipwright` skill | `codex exec "<task brief>"`, or tmux pane |
-
-Non-pi workers: load the `shipwright` skill and follow its launch/supervise/review contract — named tmux session `coord/<slug>`, worktree isolation, parent review gate, user-review handoff. pi workers: the `subagent` tool returns full transcripts and usage directly.
-
-### Task brief template
+**Task brief template** (the worker's only contract):
 
 ```
 Issue: <title> (#<n>)
-Project: <worktree path>   (branch coord/<n>-<slug> already checked out — do not recreate)
-Goal: <one line, in the project's vocabulary>
-Scope: <what to change>   Out of scope: <what not to touch>
-Skills: <the manifest applied at spawn for pi subagents; listed here for windowed/external workers only, where it is advisory>
-Build/test: <exact commands and expected results>
+Project: <worktree path>   (branch coord/<n>-<slug> checked out — do not recreate)
+Goal: <one line>
+Scope: <what to change>    Out of scope: <what not to touch>
+Build/test: <exact commands + expected results>
 Done when: <acceptance criteria from the issue>
-Constraints: work only in this worktree; never run gh issue commands; never merge or push to main;
-commit and push your branch; open a PR against main.
-Finish protocol: when your turn is finished, write `<checkout>/.scratch/status/<task-slug>.done` (one
-line: `done TS=<YYYY-MM-DD HH:MM:SS> TASK=<slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=<...>`) and best-effort ping the
-coordinator window, BEFORE your handoff text (see coordinator skill Phase 5b).
-Hand back:
-## Completed
-## Files Changed
-## Notes
+Constraints: work only in this worktree; commit locally; never push/merge/PR/tracker.
+Finish protocol: write <checkout>/.scratch/status/<task>.done + ping via /tmp/shipwright/inbox/<task>.ping (full spec: coordinator skill references/finish-protocol.md).
+Hand back: ## Completed / ## Files Changed / ## Notes
 ```
 
 ## Phase 5 — Supervise & review
 
-- Poll tmux/CLI workers and capture transcripts (shipwright mechanics). Send corrections to the same worker — never a fresh one.
-- Review each PR from source, not the summary: read the full diff, run the tests independently, check scope creep and weakened tests. UI-bearing PRs are judged against the slice's Design reference — committed tokens and components, the prototype — never a hypothetical better design. Delegate a second pass to a reviewer agent if one exists.
-- **Blocking** finding → correction to the same worker. **Non-blocking** → record for the user.
-- All waves pass and the user approves → merge PRs in dependency order. The coordinator merges, never the workers. Conflicts → re-dispatch a worker on a fresh branch off merged main.
+- Corrections go to the same worker — never a fresh one.
+- Review from source, not summaries: full diff, tests run independently, scope creep, weakened tests; UI judged against the slice's Design reference, never a better hypothetical.
+- **Blocking** → correction to the same worker. **Non-blocking** → record for the user.
+- Merge in dependency order, only after review passes and the user approves. The coordinator merges, never workers. Conflicts → re-dispatch on a fresh branch off merged main.
 
-## Phase 5b — Finish protocol (workers ping the coordinator, no polling)
+## Phase 5b — Finish protocol (no polling)
 
-Workers and reviewers confirm completion with a marker AND a direct prompt to
-the coordinator, so a finish is never missed and is recognizable by task tag +
-timestamp.
+Every finished turn leaves two artifacts:
 
-1. **Marker (durable record)**: every finished turn writes ONE line into its
-   own writable checkout (gitignored):
-   `<checkout>/.scratch/status/<task-slug>.done`
-   content: `done TS=<YYYY-MM-DD HH:MM:SS> TASK=<task-slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=<one line>`
-2. **Ping — ONE channel for every harness**: the worker/reviewer writes ONE
-   line to `/tmp/shipwright/inbox/<task-slug>.ping` (new file per finish);
-   the inbox relay (`scripts/relay.sh`, run in a relay window outside all
-   sandboxes) delivers it into the coordinator's CONVERSATION — the
-   coordinator's next turn starts with it. Harness-agnostic: writing a file
-   is the one capability every coding agent has (pi, Claude Code, Codex,
-   any sandboxed or headless future harness). The full spec lives in
-   `references/finish-protocol.md`.
-3. **Standing order**: the coordinator reads markers
-   (`.scratch/status/*.done`) first thing every turn — before any status
-   report or decision. Never report “no news” without checking first.
-4. **Tag/timestamp discipline**: marker filename and the mini prompt both
-   carry the task slug + time so a fresh session or the human can recognize
-   any task's finish at a glance.
+1. **Marker**: one line `done TS=… TASK=<slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=…` at `<checkout>/.scratch/status/<task>.done`.
+2. **Ping**: one line to `/tmp/shipwright/inbox/<task>.ping`; the relay (skill `scripts/relay.sh`) delivers it into your conversation. Harness-agnostic (files are the one capability every agent has).
+
+Standing order: read markers first thing every turn — never report "no news" without checking. Full spec: `references/finish-protocol.md`.
 
 ## Phase 6 — Close
 
-- Update `COORDINATION.md`: status done, final table, decisions.
-- Report: what shipped, which PRs merged, issues left open for the user to close (or offer close with approval).
-- Give attach instructions for any live worker session.
-
-## Visibility
-
-- **pi workers**: expand the subagent tool result for the full transcript and per-turn usage.
-- **tmux/CLI workers**: named session `coord/<slug>` — tell the user `tmux attach -t coord/<slug>`. Keep sessions alive until the PR is merged and the user is done with them.
-- **State**: point the user at `COORDINATION.md`.
+Status done; report what shipped + PRs merged; offer to close issues with approval; give attach instructions for live sessions. Point the user at `COORDINATION.md`.
