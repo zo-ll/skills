@@ -117,6 +117,18 @@ Status: active | paused | done
 
 Group issues by blocking edges into waves. Within a wave, dispatch all workers in parallel. A wave starts only when its blockers are merged. Batch parallel spawns at the tool's limits (e.g. the subagent tool caps at 8 tasks / 4 concurrent — split waves accordingly).
 
+**Worker sessions: reuse, don't relaunch.** One long-lived session per
+LANE (e.g. UI worker, engine worker, reviewer), reused across tasks in that
+lane — sequenced tasks hand to the SAME conversation (a continuation prompt:
+state the new task, the worktree/branch for it, and 'continue in this
+conversation'). Preserving lane context beats fresh-context purity for
+queued slices. Relaunch fresh ONLY when: (a) the session is near its quota/
+limit (drained context is worthless anyway; checkpoint first), or (b) the
+harness sandbox is scoped to its launch worktree (codex workspace-write) —
+then prefer SERIAL same-worktree slices (stacked branches) so the session
+stays usable, and only split worktrees when the task really needs isolation
+or a PR must stand alone.
+
 Per issue `<n>` with slug `<slug>`:
 
 1. **Worktree + branch off latest main** (each worker gets its own tree — sharing a checkout between parallel workers clobbers branch state):
