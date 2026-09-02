@@ -122,12 +122,14 @@ LANE (e.g. UI worker, engine worker, reviewer), reused across tasks in that
 lane — sequenced tasks hand to the SAME conversation (a continuation prompt:
 state the new task, the worktree/branch for it, and 'continue in this
 conversation'). Preserving lane context beats fresh-context purity for
-queued slices. Relaunch fresh ONLY when: (a) the session is near its quota/
-limit (drained context is worthless anyway; checkpoint first), or (b) the
-harness sandbox is scoped to its launch worktree (codex workspace-write) —
-then prefer SERIAL same-worktree slices (stacked branches) so the session
-stays usable, and only split worktrees when the task really needs isolation
-or a PR must stand alone.
+queued slices. Relaunch fresh ONLY when the session is near its quota/limit
+(drained context is worthless anyway; checkpoint first). Sandboxed-only
+launches are the exception: run workers with the harness's flat/full mode
+(parity — claude already runs bypass-permissions) when the user authorizes
+it, so sessions are reusable across worktrees and pings reach the
+coordinator directly; the real safety layer is the worker contract (worktree
+isolation, never merge/push, the critic gate, and user merge approval), not
+the sandbox.
 
 Per issue `<n>` with slug `<slug>`:
 
