@@ -123,6 +123,14 @@ live state (status, table, waves, decisions) plus the most recent ~15 handoff
 bullets. When adding a new handoff bullet pushes the list past that, EVICT the
 oldest bullets — they go to the journal, never get deleted.
 
+ALWAYS keep an **archive pointer** visible in COORDINATION.md (e.g. right
+under `## Handoffs`):
+
+    Rotated history: .coordinator/journal/ (latest archive: YYYY-MM, N events)
+
+so the existence and recency of archives is in the coordinator's per-turn
+context — a rotated fact is never silently invisible.
+
 ### Journal (the durable history)
 
 Archive root: `<repo>/.coordinator/journal/`, files `history-YYYY-MM.md`
@@ -142,6 +150,14 @@ Rotation rule (apply when updating Handoffs):
 3. Remove it from COORDINATION.md. Nothing is ever lost.
 4. Same rotation applies to any long-lived append-only section (e.g.
    repeated "Next" notes), if it grows past a readable size.
+
+**Answering history (standing order)**: when asked anything about state,
+decisions, or past events, answer from `COORDINATION.md`; if the answer is
+NOT clearly present (or the question touches anything older than the kept
+bullets/archive pointer), run `rg -i "<key terms>" <repo>/.coordinator/journal/`
+BEFORE answering — never guess, never claim "no" / "nothing happened" from
+memory or from a summary. Grepping a few month-files of markdown is cheap;
+the journal is there precisely so history is recoverable.
 
 The on-ramp for a fresh session stays: read AGENTS.md, COORDINATION.md,
 docs/PLAN.md, DESIGN, workstreams — and then query the journal only when you
