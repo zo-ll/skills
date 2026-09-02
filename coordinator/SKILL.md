@@ -143,6 +143,10 @@ an OPTIONAL viewer only: the files are plain markdown with `#` titles, ISO
 dash dates, `#tag` tags, and issue links — a vault can point at
 `<repo>/.coordinator/journal/`; the coordination loop never depends on it.
 
+APPEND handoff bullets under `## Handoffs` — never at the file's EOF
+(the last section, e.g. `## Durable resumption`, silently absorbs
+EOF-appends; this actually happened and gutted a section).
+
 Rotation rule (apply when updating Handoffs):
 1. Count `## Handoffs` bullets; if > ~15, compute the evicted tail (oldest).
 2. Append each evicted bullet to the month file, e.g.
