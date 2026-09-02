@@ -155,6 +155,15 @@ Rotation rule (apply when updating Handoffs):
 4. Same rotation applies to any long-lived append-only section (e.g.
    repeated "Next" notes), if it grows past a readable size.
 
+**Rotation guardrails** (learned the hard way): after ANY rotation, verify
+before committing — exactly one `## Handoffs` and one `## Durable resumption`
+heading; the handoff section contains `~15` bullets (grep count) with no
+orphaned continuation lines and no duplicates of the same event; journal
+entries are COMPLETE blocks (bullet + its continuation). Prefer small,
+hand-verifiable edits over clever scripts; when scripting, rebuild the
+section string from the bullet list and re-check headings + counts after
+every run.
+
 **Answering history (standing order)**: when asked anything about state,
 decisions, or past events, answer from `COORDINATION.md`; if the answer is
 NOT clearly present (or the question touches anything older than the kept
