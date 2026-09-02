@@ -155,7 +155,7 @@ Rotation rule (apply when updating Handoffs):
 4. Same rotation applies to any long-lived append-only section (e.g.
    repeated "Next" notes), if it grows past a readable size.
 
-**Rotation guardrails** (learned the hard way): after ANY rotation, verify
+**Rotation guardrails**: after ANY rotation, verify
 before committing — exactly one `## Handoffs` and one `## Durable resumption`
 heading; the handoff section contains `~15` bullets (grep count) with no
 orphaned continuation lines and no duplicates of the same event; journal
