@@ -38,10 +38,8 @@ Write your usual final handoff in your pane (task report, verdict, etc.).
 ---
 
 Coordinator side:
-- The relay runs the skill's `scripts/relay.sh` (notify-only: status badge +
-  log, zero keystroke injection — it never types into any pane).
-- Standing order: the coordinator reads markers (`.scratch/status/*.done`) AND
-  drains the inbox (`cat` + `rm` `/tmp/shipwright/inbox/*.ping`) first thing
-  every turn — before any status report or decision.
+- The relay window runs the skill's `scripts/relay.sh`.
+- Standing order: the coordinator reads markers (`.scratch/status/*.done`)
+  first thing every turn — before any status report or decision.
 - Coordinator→worker direction (assignments, corrections, review pointers)
   stays exactly as is (`prompt-target` into the worker pane).

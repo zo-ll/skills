@@ -107,9 +107,9 @@ Hand back: ## Completed / ## Files Changed / ## Notes
 Every finished turn leaves two artifacts:
 
 1. **Marker**: one line `done TS=… TASK=<slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=…` at `<checkout>/.scratch/status/<task>.done`.
-2. **Ping**: one line to `/tmp/shipwright/inbox/<task>.ping`; the relay (skill `scripts/relay.sh`) is NOTIFY-ONLY — it raises a passive `✉ N` badge in the status bar and logs the arrival, but never types into your pane. Harness-agnostic (files are the one capability every agent has).
+2. **Ping**: one line to `/tmp/shipwright/inbox/<task>.ping`; the relay (skill `scripts/relay.sh`) delivers it into your conversation. Harness-agnostic (files are the one capability every agent has).
 
-Standing order: read markers AND drain the inbox first thing every turn — never report "no news" without checking. Drain: `for f in /tmp/shipwright/inbox/*.ping; do [ -f "$f" ] || continue; cat "$f"; rm -f "$f"; done` (consuming the files clears the badge on the relay's next ≤3s pass). Full spec: `references/finish-protocol.md`.
+Standing order: read markers first thing every turn — never report "no news" without checking. Full spec: `references/finish-protocol.md`.
 
 ## Phase 6 — Close
 
