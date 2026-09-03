@@ -57,7 +57,17 @@ Break into tracer-bullet **vertical slices** (each cuts every layer and is verif
 
 Group by blocking edges; a wave starts only when its blockers are merged; spawn the wave's workers in parallel (respect tool concurrency limits).
 
-- **Reuse lane sessions**: one long-lived session per lane (UI, engine, reviewer); hand the next slice to the SAME conversation (continuation prompt: new task, worktree, "continue in this conversation"). Relaunch fresh only when the session is near quota (checkpoint first). Run harnesses in their flat/full permission mode when the user authorizes it (real safety = worktree isolation + no-merge/no-push contract + critic gate + user merge approval, not the sandbox).
+- **Fresh session per task by default**: workers get a NEW session for each
+  sliced task (the brief + repo docs re-baseline them cheaply). The durable
+  memory lives in the COORDINATOR (COORDINATION.md + journal + issue specs),
+  never in a worker's conversation. REUSE only when genuinely mid-series AND
+  healthy: same worker continuing the same branch with clear context value,
+  context >= ~50% and nowhere near a limit — health-check before every reuse.
+- ALWAYS checkpoint before a possible limit (context, session, credit): when
+  a worker gets close, get a marker/ping + partial commits first.
+- Run harnesses in their flat/full permission mode when the user authorizes
+  it (real safety = worktree isolation + no-merge/no-push contract + critic
+  gate + user merge approval, not the sandbox).
 - **Worktree/branch off latest main**, one per slice, none shared:
 
 ```bash
