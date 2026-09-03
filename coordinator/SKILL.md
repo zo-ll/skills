@@ -80,10 +80,6 @@ Hand back: ## Completed / ## Files Changed / ## Notes
 ## Phase 5 — Supervise & review
 
 - Corrections go to the same worker — never a fresh one.
-- NEVER steer a running worker: a worker executes the spec it was given end
-  to end. New or changed requirements are the NEXT task — send them only when
-  the current one is WITH THE CRITIC (or done). No mid-task interrupt-and-
-  re-spec; let the current slice land and be reviewed first.
 - Review from source, not summaries: full diff, tests run independently, scope creep, weakened tests; UI judged against the slice's Design reference, never a better hypothetical.
 - **Blocking** → correction to the same worker. **Non-blocking** → record for the user.
 - Merge in dependency order, only after review passes and the user approves. The coordinator merges, never workers. Conflicts → re-dispatch on a fresh branch off merged main.
