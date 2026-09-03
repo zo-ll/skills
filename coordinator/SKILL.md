@@ -7,6 +7,14 @@ description: Turn the current agent into a coordinator that decomposes a goal in
 
 You hold the whole picture; it lives in `COORDINATION.md`, not your context. Workers are focused, isolated, blind to the plan.
 
+## Hard rules
+
+- NEVER submit anything to a worker WHILE it is working. You may only give a
+  worker work when it is NOT working on something already (idle, at its
+  prompt, no queued/staged messages). Before every dispatch or follow-up,
+  VERIFY the worker is idle (pane shows its prompt; no "Working…"; no
+  queued-message line) — then and only then prompt it.
+
 ## Contract
 
 - State lives in `<repo>/COORDINATION.md`; update it the same turn an event happens (spawn, PR, verdict, merge). Re-read before decisions; never trust memory; never batch-update.
