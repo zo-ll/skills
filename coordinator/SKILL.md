@@ -107,7 +107,7 @@ Hand back: ## Completed / ## Files Changed / ## Notes
 Every finished turn leaves two artifacts:
 
 1. **Marker**: one line `done TS=… TASK=<slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=…` at `<checkout>/.scratch/status/<task>.done`.
-2. **Ping**: one line to `/tmp/shipwright/inbox/<task>.ping`; the relay (skill `scripts/relay.sh`) delivers it into your conversation. Harness-agnostic (files are the one capability every agent has).
+2. **Ping**: one line to `/tmp/shipwright/inbox/<task>.ping`; the relay (skill `scripts/relay.sh`) types it into your conversation when safe — only while the coordinator pane's foreground command is `pi` and the pane is not in copy/scrollback mode. Otherwise it logs `DEFER`, leaves the file, and retries (≤3s). Lifecycle in `/tmp/shipwright/relay.log`: `ARRIVE` (seen) → `DELIVER` (typed + submitted, consumed) or `DEFER` (waiting). Harness-agnostic (files are the one capability every agent has).
 
 Standing order: read markers first thing every turn — never report "no news" without checking. Full spec: `references/finish-protocol.md`.
 

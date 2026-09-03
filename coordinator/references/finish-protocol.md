@@ -38,7 +38,7 @@ Write your usual final handoff in your pane (task report, verdict, etc.).
 ---
 
 Coordinator side:
-- The relay window runs the skill's `scripts/relay.sh`.
+- The relay window runs the skill's `scripts/relay.sh`: guarded typed delivery — injects only when the coordinator pane runs `pi` and is not in copy mode; otherwise `DEFER` + retain + retry. Log (`/tmp/shipwright/relay.log`) vocabulary: `ARRIVE` → `DELIVER` / `DEFER`.
 - Standing order: the coordinator reads markers (`.scratch/status/*.done`)
   first thing every turn — before any status report or decision.
 - Coordinator→worker direction (assignments, corrections, review pointers)
