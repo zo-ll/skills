@@ -15,9 +15,16 @@ Standard layout, one tmux session (`personal`; attach: `tmux attach -t personal`
 | 1 | critic | pi | model muse-spark-1.3, with the `critic` skill loaded and NO other skills (repo AGENTS.md context is fine) |
 | 2 | claude lane | claude --model opus --effort high --dangerously-skip-permissions | worker: UI lane |
 | 3 | codex lane | codex -m gpt-5.6-terra -c model_reasoning_effort=high -s danger-full-access -a never --no-alt-screen | worker: engine/CLI/infra lane |
-| 4 | researcher | pi | model muse-spark-1.3, with the `researcher` skill loaded and NO other skills — feature/design research (repo + web) returning a brief; idle until a study pointer lands |
 
-Startup recipes (used exactly): critic = `pi --model muse-spark-1.3 --skill <critic SKILL.md> -n critic "$(cat critic-boot)"`; researcher = `pi --model muse-spark-1.3 --skill <researcher SKILL.md> -n researcher "$(cat researcher-boot)"`; claude and codex as the table shows. The CRITIC and RESEARCHER windows must show ONLY their own skill — never a plain shell, never a full-skill pi (both have broken takeovers).
+Startup recipes (used exactly): critic = `pi --model muse-spark-1.3 --skill <critic SKILL.md> -n critic "$(cat critic-boot)"`; claude and codex as the table shows. The CRITIC window must show ONLY the critic skill — never a plain shell, never a full-skill pi (both have broken takeovers).
+
+ON-DEMAND (user-called; NOT part of the default env): research window.
+Spawn ONLY when the user asks to research a feature:
+`tmux new-window -d -t personal -n researcher -c <repo> 'pi --model muse-spark-1.3 --skill <researcher SKILL.md> -n researcher "$(cat researcher-boot)"'`
+then dispatch via the research protocol (`references/research-protocol.md`).
+Kill the window when the brief lands (`tmux kill-window -t personal:4`) — the
+researcher is never standing. Other on-demand windows (horizon daemons, etc.)
+follow the same rule: create when needed, remove when done.
 
 Also at takeover:
 - The relay must be running (detached, from coordinator skill `scripts/relay.sh`); workers ping via the inbox (`/tmp/shipwright/inbox/<task>.ping`); the coordinator DRAINS the inbox each turn.
