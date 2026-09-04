@@ -15,8 +15,9 @@ Standard layout, one tmux session (`personal`; attach: `tmux attach -t personal`
 | 1 | critic | pi | model muse-spark-1.3, with the `critic` skill loaded and NO other skills (repo AGENTS.md context is fine) |
 | 2 | claude lane | claude --model opus --effort high --dangerously-skip-permissions | worker: UI lane |
 | 3 | codex lane | codex -m gpt-5.6-terra -c model_reasoning_effort=high -s danger-full-access -a never --no-alt-screen | worker: engine/CLI/infra lane |
+| 4 | researcher | pi | model muse-spark-1.3, with the `researcher` skill loaded and NO other skills — feature/design research (repo + web) returning a brief; idle until a study pointer lands |
 
-Startup recipes (used exactly): critic = `pi --model muse-spark-1.3 --skill <critic SKILL.md> -n critic "$(cat critic-boot)"`; claude and codex as the table shows. The CRITIC window must show ONLY the critic skill — never a plain shell, never a full-skill pi (both have broken takeovers).
+Startup recipes (used exactly): critic = `pi --model muse-spark-1.3 --skill <critic SKILL.md> -n critic "$(cat critic-boot)"`; researcher = `pi --model muse-spark-1.3 --skill <researcher SKILL.md> -n researcher "$(cat researcher-boot)"`; claude and codex as the table shows. The CRITIC and RESEARCHER windows must show ONLY their own skill — never a plain shell, never a full-skill pi (both have broken takeovers).
 
 Also at takeover:
 - The relay must be running (detached, from coordinator skill `scripts/relay.sh`); workers ping via the inbox (`/tmp/shipwright/inbox/<task>.ping`); the coordinator DRAINS the inbox each turn.
@@ -28,7 +29,7 @@ You hold the whole picture; it lives in `COORDINATION.md`, not your context. Wor
 
 ## Hard rules
 
-- pi panes (critic, research, any pi worker) receive prompts ONLY as a
+- pi panes (critic, researcher, any pi worker) receive prompts ONLY as a
   SINGLE LINE pointer to a file (`review assignment: read <path> ...`);
   NEVER multi-line content pasted into a pi composer — pi splits pasted
   newlines into one message per line (verified fragmentation). Content lives
@@ -80,6 +81,14 @@ Break into tracer-bullet **vertical slices** (each cuts every layer and is verif
 - Keep an **archive pointer** under `## Handoffs` (e.g. "Rotated history: .coordinator/journal/ (latest archive: YYYY-MM, N events)") so archives are always in your per-turn context.
 - **Guardrails after any rotation**: exactly one `## Handoffs`/last heading each, ~15 bullets, no orphan continuation lines, no duplicate events, journal entries are complete blocks (bullet + continuations). Prefer small hand-verifiable edits; re-check headings + counts after every run.
 - **Answering history**: if asked about state/decisions/events not clearly in the dashboard, `rg` the journal BEFORE answering — never guess or imply "nothing happened" from memory.
+
+## Phase 3b — Research-first (parked/new features)
+
+For features needing a decision before implementation (e.g. #33/#71/#72
+style): dispatch RESEARCH to the researcher window BEFORE any worktree/branch.
+Full contract: `references/research-protocol.md` (study file -> single-line
+pointer -> brief at a deliverable path -> ping). Research returns a brief,
+never code; the user decides; a decided direction becomes a new issue + slice.
 
 ## Phase 4 — Dispatch in waves
 
