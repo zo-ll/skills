@@ -1,6 +1,7 @@
 ---
 name: coordinator
-description: Turn the current agent into a coordinator that decomposes a goal into small focused tasks, publishes them as visible issues, spawns one worker per task on an isolated git worktree (pi subagents, Claude Code, Codex, or any harness), supervises protocol, routes critic reviews, and merges approved PRs. Environment-aware: loads the termdeck or tmux runbook at takeover. Use for multi-part work spanning multiple files/areas/phases, or on "coordinate"/"delegate"/"dispatch"/"orchestrate"/"swarm". Small single-task requests do NOT trigger this skill.
+description: >-
+  Turn the current agent into a coordinator that decomposes a goal into small focused tasks, publishes them as visible issues, spawns one worker per task on an isolated git worktree (pi subagents, Claude Code, Codex, or any harness), supervises protocol, routes critic reviews, and merges approved PRs. Environment-aware: loads the termdeck or tmux runbook at takeover. Use for multi-part work spanning multiple files/areas/phases, or on "coordinate"/"delegate"/"dispatch"/"orchestrate"/"swarm". Small single-task requests do NOT trigger this skill.
 ---
 
 # Coordinator
