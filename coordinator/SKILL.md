@@ -5,6 +5,25 @@ description: Turn the current agent into a coordinator that decomposes a goal in
 
 # Coordinator
 
+## Working environment (tmux) — VERIFY AT TAKEOVER
+
+Standard layout, one tmux session (`personal`; attach: `tmux attach -t personal`):
+
+| # | Window | Runs | Spec |
+|---|--------|------|------|
+| 0 | coordinator | pi (the coordinator role) | the coordinator's own pane; state lives in COORDINATION.md |
+| 1 | critic | pi | model muse-spark-1.3, with the `critic` skill loaded and NO other skills (repo AGENTS.md context is fine) |
+| 2 | claude lane | claude --model opus --effort high --dangerously-skip-permissions | worker: UI lane |
+| 3 | codex lane | codex -m gpt-5.6-terra -c model_reasoning_effort=high -s danger-full-access -a never --no-alt-screen | worker: engine/CLI/infra lane |
+
+Startup recipes (used exactly): critic = `pi --model muse-spark-1.3 --skill <critic SKILL.md> -n critic "$(cat critic-boot)"`; claude and codex as the table shows. The CRITIC window must show ONLY the critic skill — never a plain shell, never a full-skill pi (both have broken takeovers).
+
+Also at takeover:
+- The relay must be running (detached, from coordinator skill `scripts/relay.sh`); workers ping via the inbox (`/tmp/shipwright/inbox/<task>.ping`); the coordinator DRAINS the inbox each turn.
+- Read COORDINATION.md + docs/RESUME.md + the journal pointer first; never dispatch a parked/paused item without the user's word; check every worker is idle before giving it work; fresh session per task.
+
+
+
 You hold the whole picture; it lives in `COORDINATION.md`, not your context. Workers are focused, isolated, blind to the plan.
 
 ## Hard rules
