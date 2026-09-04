@@ -36,6 +36,12 @@ You hold the whole picture; it lives in `COORDINATION.md`, not your context. Wor
 
 ## Hard rules
 
+- CODEX DISPATCH VERIFY-RETRY: after prompt-target + Enter, ALWAYS
+  capture the pane: Working => done; if the pointer text still sits at the
+  `>` prompt (unsubmitted) => send ONE more Enter (the lost-Enter race:
+  a key inside the bracketed-paste stream never submits). NEVER a second
+  Enter while a turn shows Working (the twin-ping duplicate). Same check
+  applies to claude; only pi panes auto-submit reliably.
 - pi panes (critic, researcher, any pi worker) receive prompts ONLY as a
   SINGLE LINE pointer to a file (`review assignment: read <path> ...`);
   NEVER multi-line content pasted into a pi composer — pi splits pasted
