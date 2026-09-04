@@ -179,7 +179,11 @@ You superintend the loop; you do not inspect the work.
 - **Dispatch the critic** for every completed slice: write a review assignment
   (diff-at-source pointer + issue acceptance criteria + the slice's Design
   reference + "verify cheapest-first, read-only" + verdict format) and launch
-  the critic per your env runbook with a single-line pointer.
+  the critic per your env runbook with a single-line pointer. Include the
+  critic finish signal in the assignment: on completion write one line
+  `VERDICT <task>: <pass|handback> — <summary>` to
+  /tmp/shipwright/inbox/<task>.critic.ping — the relay delivers it like any
+  worker ping, so the critic wakes you instead of sitting unseen in its pane.
 - Route on the critic's verdict: **pass** → user approves → merge in dependency
   order (you merge, never workers); **handback** → correction to the same
   worker. Conflicts → re-dispatch on a fresh branch off merged main.

@@ -59,6 +59,8 @@ echo "[relay started $(date '+%Y-%m-%d %H:%M:%S')] delivery=$DELIVERY" >> "$LOG"
 shopt -s nullglob
 deferred=""
 prev=""
+last_content=""
+last_ts="0"
 while true; do
   pane="$(resolve_pane)"
   if [ -z "$pane" ]; then
@@ -77,6 +79,17 @@ while true; do
     [ -f "$f" ] || continue
     content="$(head -n 1 "$f" | tr -d '\r')"
     [ -n "$content" ] || { rm -f "$f"; continue; }
+    # Dedupe: a re-created ping with identical content within 5 minutes is a
+    # stale re-delivery (worker writing the finish line more than once) —
+    # consume it silently, never deliver twice.
+    now="$(date +%s)"
+    if [ "$content" = "$last_content" ] && [ $((now - last_ts)) -lt 300 ]; then
+      printf '%s DUP    %-22s :: identical ping re-created <300s; consumed\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$(basename "$f" .ping)" | tee -a "$LOG"
+      rm -f "$f"
+      continue
+    fi
+    last_ts="$now"
+    last_content="$content"
     if [ "$DELIVERY" = "notify" ]; then
       ts="$(date '+%Y-%m-%d %H:%M:%S')"
       printf '%s NOTIFY %-22s :: %s\n' "$ts" "$(basename "$f" .ping)" "$content" | tee -a "$LOG"

@@ -90,8 +90,14 @@ setsid nohup scripts/relay-termdeck.sh >/dev/null 2>&1 &
   `termctl notify "<task> done: <summary>"` (a human-visible signal) and
   consumes the ping; nothing is typed into pi.
 
-Log: `/tmp/shipwright/relay-termdeck.log` (ARRIVE/DELIVER/DEFER/NOTIFY), pid
+Log: `/tmp/shipwright/relay-termdeck.log` (ARRIVE/DELIVER/DEFER/NOTIFY/DUP), pid
 file `/tmp/shipwright/relay-termdeck.pid`.
+
+Critic finish signal: review assignments tell the critic to write one line
+`VERDICT <task>: <pass|handback> — <summary>` to
+`/tmp/shipwright/inbox/<task>.critic.ping` on completion — same delivery path
+as worker pings, so the critic wakes the coordinator instead of sitting unseen
+in its pane.
 
 Shell completion hooks (independent of the above): termdeck env
 `TERMDECK_NOTIFY` = `none|error|long|all`, `TERMDECK_NOTIFY_LONG_SECS`.
