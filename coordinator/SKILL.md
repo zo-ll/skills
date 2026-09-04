@@ -28,6 +28,15 @@ You hold the whole picture; it lives in `COORDINATION.md`, not your context. Wor
 
 ## Hard rules
 
+- pi panes (critic, research, any pi worker) receive prompts ONLY as a
+  SINGLE LINE pointer to a file (`review assignment: read <path> ...`);
+  NEVER multi-line content pasted into a pi composer — pi splits pasted
+  newlines into one message per line (verified fragmentation). Content lives
+  in the file the pointer names. Non-pi harnesses (claude/codex) may receive
+  multi-line, but keep pointers uniform anyway.
+
+## Hard rules
+
 - NEVER submit anything to a worker WHILE it is working. You may only give a
   worker work when it is NOT working on something already (idle, at its
   prompt, no queued/staged messages). Before every dispatch or follow-up,
