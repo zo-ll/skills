@@ -25,7 +25,16 @@ commits code and never decides — it returns a brief.
 ## Receive
 
 - The researcher pings when done; the brief sits at the deliverable path.
-- READ the brief fully. Route it to the user with a 5-line condensation
+- REQUIRED before accepting completion: READ every delivered part fully and
+  compare it to the study's expected sections and questions. Verify all
+  expected sections are present, there is no truncation sentinel (such as
+  `...[truncated ...]`), the ending is complete, and there is an explicit
+  unresolved-questions list (write `None` if every question was resolved).
+  A finish marker or ping alone is NOT proof of artifact completeness.
+- If anything is missing, record the brief as incomplete and request a
+  narrowly scoped completion only after the researcher is idle. Do not
+  summarize it to the user as a finished study.
+- Once complete, route it to the user with a 5-line condensation
   (recommendation + the possibility spread + risks).
 - The user decides (pick a direction, park, or ask for a re-study with
   narrower questions). Research results do NOT create worktrees or
@@ -33,7 +42,13 @@ commits code and never decides — it returns a brief.
 
 ## Ground rules
 
-- A study files ONE brief per assignment; re-studies get their own study file
+- Large studies must be split into named parts with a manifest listing each
+  filename, expected sections, and reading order. Cap each part at 8 KB
+  (UTF-8 bytes), well below the observed roughly 11 KB truncated artifact;
+  this is a conservative working limit, not a provider guarantee. Check
+  completeness even below the cap. The manifest and all listed parts form
+  ONE deliverable; missing parts mean it is incomplete.
+- A study files ONE deliverable per assignment; re-studies get their own study file
   (narrower questions) — never an edit-loop on a live researcher turn.
 - If the researcher handbacks (missing deliverable path/questions), fix the
   study and re-dispatch only when idle.

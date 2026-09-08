@@ -1,8 +1,7 @@
 # Coordinator — Tmux environment runbook
 
-Load this file ONLY when the active environment is **tmux** (`termctl list`
-fails but `tmux list-sessions` succeeds). The termdeck runbook is
-[env-termdeck.md](env-termdeck.md) — never load both.
+Load this file when the active environment is **tmux** (`tmux list-sessions`
+succeeds). This is the coordinator's environment runbook.
 
 ## Working environment
 
@@ -41,17 +40,27 @@ follow the same rule: create when needed, remove when done.
 
 - The relay must be running detached, from coordinator skill `scripts/relay.sh`
   (default target `personal:coordinator.0`; override with
-  `TERMDECK_COORD_PANE`, kept for compatibility). Pings arrive in the inbox
+  `RELAY_COORD_PANE`). Pings arrive in the inbox
   (`/tmp/shipwright/inbox/<task>.ping`) and are typed into the coordinator
   pane when its foreground command is `pi` and not in copy mode; otherwise
   DEFER+retry. See `references/finish-protocol.md`.
 
 ## Dispatch capture (tmux)
 
+For provider stalls, run `bash scripts/check-aborted.sh personal` from the
+coordinator skill directory and follow [provider recovery](provider-recovery.md).
+The helper is read-only; its status is a triage hint, not a completion gate.
+
 After prompt-target + Enter, ALWAYS capture the pane:
 
-- `tmux display-message -p -t <pane> '#{pane_current_command}'` → `codex`/`claude` = Working ⇒ done.
+- `tmux display-message -p -t <pane> '#{pane_current_command}'` identifies
+  WHICH application is open. `codex`/`claude` alone does not prove a turn
+  was accepted; either can be idle at its prompt.
+- Capture with `tmux capture-pane -p -t <pane>` and look for an actual
+  Working/thinking indicator for the submitted turn, or an explicit task
+  acknowledgment. Only then treat dispatch as accepted. An ambiguous
+  capture calls for another observation, not another Enter.
 - Pointer still at the prompt (unsubmitted) → ONE more Enter (lost-Enter race);
-  NEVER a second Enter while a turn shows Working (twin-ping duplicate).
+  never a second Enter while the pane shows Working (twin-ping duplicate).
 - pi panes receive prompts ONLY as a SINGLE LINE pointer to a file — never
   multi-line content pasted into a pi composer (pi fragments pasted newlines).

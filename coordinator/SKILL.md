@@ -1,7 +1,7 @@
 ---
 name: coordinator
 description: >-
-  Turn the current agent into a coordinator that decomposes a goal into small focused tasks, publishes them as visible issues, spawns one worker per task on an isolated git worktree (pi subagents, Claude Code, Codex, or any harness), supervises protocol, routes critic reviews, and merges approved PRs. Environment-aware: loads the termdeck or tmux runbook at takeover. Use for multi-part work spanning multiple files/areas/phases, or on "coordinate"/"delegate"/"dispatch"/"orchestrate"/"swarm". Small single-task requests do NOT trigger this skill.
+  Turn the current agent into a coordinator that decomposes a goal into small focused tasks, publishes them as visible issues, spawns one worker per task on an isolated git worktree (pi subagents, Claude Code, Codex, or any harness), supervises protocol, routes critic reviews, and merges approved PRs. Environment-aware: loads the tmux runbook at takeover. Use for multi-part work spanning multiple files/areas/phases, or on "coordinate"/"delegate"/"dispatch"/"orchestrate"/"swarm". Small single-task requests do NOT trigger this skill.
 ---
 
 # Coordinator
@@ -22,9 +22,9 @@ your own reading of code.
 
 ## Takeover (every fresh session or environment)
 
-1. Detect the environment — `termctl list` returns a live workspace → termdeck; else
-   `tmux list-sessions` succeeds → tmux; else ask the user once. Termdeck wins
-   when both live. Read ONLY `references/env-<detected>.md` — never both runbooks.
+1. Detect the environment — `tmux list-sessions` succeeds → load
+   `references/env-tmux.md` (your environment runbook); else ask the user
+   once. Read ONLY your environment runbook.
 2. Run the environment's delivery script. [current] verify the relay/inbox is up.
 3. Read `COORDINATION.md`, the journal pointer, and the markers first thing
    every turn (`find <worktrees> -path '*.scratch/status/*.done' -newer …`;
@@ -178,15 +178,24 @@ You superintend the loop; you do not inspect the work.
 - Corrections go to the same worker — never a fresh one.
 - **Dispatch the critic** for every completed slice: write a review assignment
   (diff-at-source pointer + issue acceptance criteria + the slice's Design
-  reference + "verify cheapest-first, read-only" + verdict format) and launch
+  reference + full expected HEAD + "verify cheapest-first, read-only" +
+  verdict format) and launch
   the critic per your env runbook with a single-line pointer. Include the
   critic finish signal in the assignment: on completion write one line
-  `VERDICT <task>: <pass|handback> — <summary>` to
+  `VERDICT <task>: <pass|handback> @ <full-reviewed-commit> — <summary>` to
   /tmp/shipwright/inbox/<task>.critic.ping — the relay delivers it like any
   worker ping, so the critic wakes you instead of sitting unseen in its pane.
+  Require the same HEAD in its marker/report and verify HEAD is unchanged
+  before publishing. New review rounds use `<task>.r2.critic.ping` etc.;
+  retries reuse that round's filename. For external edits, also bind the
+  report to reviewed file hashes (see `references/finish-protocol.md`).
 - Route on the critic's verdict: **pass** → user approves → merge in dependency
   order (you merge, never workers); **handback** → correction to the same
   worker. Conflicts → re-dispatch on a fresh branch off merged main.
+- Before merge, compare the verdict's reviewed HEAD with the candidate.
+  Behavior-changing post-PASS merges/rebases require re-review. A purely
+  non-behavioral exception requires an explicit coordinator note binding
+  old/new heads and its rationale; otherwise obtain a new round's PASS.
 - Non-blocking critic notes → record for the user.
 
 ## Phase 5b — Finish protocol (no polling)
@@ -195,7 +204,7 @@ Every finished worker turn leaves two artifacts:
 
 1. **Marker**: one line `done TS=… TASK=<slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=…` at `<checkout>/.scratch/status/<task>.done`.
 2. **Ping**: one line to `/tmp/shipwright/inbox/<task>.ping`; the environment's
-   delivery script (relay.sh / relay-termdeck.sh — see your env runbook for the
+   delivery script (relay.sh — see your env runbook for the
    delivery mechanism and modes) surfaces it to you.
 
 Standing order: read markers first thing every turn — never report "no news"
