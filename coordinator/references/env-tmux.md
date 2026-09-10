@@ -9,18 +9,23 @@ Standard layout, one tmux session (`personal`; attach: `tmux attach -t personal`
 
 | # | Window | Runs | Spec |
 |---|--------|------|------|
-| 0 | coordinator | pi (the coordinator role) | the coordinator's own pane; state lives in COORDINATION.md |
-| 1 | critic | pi | the `critic` skill loaded and NO other skills; model MUST be pinned (core rule — bare `muse-spark-1.3` matches a keyless -free variant) |
-| 2 | claude lane | claude --model opus --effort high --dangerously-skip-permissions | worker: UI lane |
-| 3 | codex lane | codex -m gpt-5.6-terra -c model_reasoning_effort=high -s danger-full-access -a never --no-alt-screen | worker: engine/CLI/infra lane |
+| 0 | coordinator | pi | the coordinator's own pane; state lives in COORDINATION.md; model from `config.coordinator` (see startup recipes) |
+| 1 | critic | pi | the `critic` skill loaded and NO other skills; model from `config.critic` (pass the FULL id — a bare pattern can match a keyless variant) |
+| 2 | claude lane | claude | worker: UI lane; model/effort from `config.workers.claude` |
+| 3 | codex lane | codex | worker: engine/CLI/infra lane; model from `config.workers.codex` |
 
 The CRITIC window must show ONLY the critic skill — never a plain shell,
 never a full-skill pi (both have broken takeovers).
 
 ## Startup recipes (used exactly)
 
-- critic = `pi --provider opencode-go --model muse-spark-1.3-contributor --skill <critic SKILL.md> -n critic "$(cat critic-boot)"`
-- claude and codex as the table shows.
+Every model is taken from `<repo>/.coordinator/config.json` (never a harness
+default). Substitute the configured values:
+
+- coordinator = `pi --provider <cfg.coordinator.provider> --model <cfg.coordinator.model>`
+- critic = `pi --provider <cfg.critic.provider> --model <cfg.critic.model> --skill <critic SKILL.md> -n critic "$(cat critic-boot)"`
+- claude = `claude --model <cfg.workers.claude.model> --effort <cfg.workers.claude.effort> --dangerously-skip-permissions`
+- codex = `codex -m <cfg.workers.codex.model> -c model_reasoning_effort=<cfg.workers.codex.reasoning_effort> -s danger-full-access -a never --no-alt-screen`
 
 ## On-demand researcher (NOT part of the default env)
 
@@ -28,7 +33,7 @@ Spawn ONLY when the user asks to research a feature:
 
 ```bash
 tmux new-window -d -t personal -n researcher -c <repo> \
-  'pi --model muse-spark-1.3 --skill <researcher SKILL.md> -n researcher "$(cat researcher-boot)"'
+  'pi --provider <cfg.researcher.provider> --model <cfg.researcher.model> --skill <researcher SKILL.md> -n researcher "$(cat researcher-boot)"'
 ```
 
 then dispatch via the research protocol (`references/research-protocol.md`).
@@ -43,7 +48,10 @@ follow the same rule: create when needed, remove when done.
   `RELAY_COORD_PANE`). Pings arrive in the inbox
   (`/tmp/shipwright/inbox/<task>.ping`) and are typed into the coordinator
   pane when its foreground command is `pi` and not in copy mode; otherwise
-  DEFER+retry. See `references/finish-protocol.md`.
+  DEFER+retry. The relay COALESCES: after a quiet window (default 6s,
+  `RELAY_COALESCE`) it types all pending events as ONE line (`EVENTS n: …`), so
+  one turn drains a wave. `RELAY_INBOX`, `RELAY_LOG`, `RELAY_LOCK`, and
+  `RELAY_INTERVAL` also override. See `references/finish-protocol.md`.
 
 ## Dispatch capture (tmux)
 

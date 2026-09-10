@@ -7,9 +7,13 @@ marker before publishing its ping.
 
 ## 1. Ping — write ONE line to the inbox (ALL harnesses)
 
+The ping line is the coordinator's wake-up AND its evidence: carry result and
+summary in it so no marker read is needed to route.
+
     pending=$(mktemp /tmp/shipwright/inbox/.publish.XXXXXX)
-    printf 'VERDICT <task>: pass @ <full-reviewed-commit> — <one-line summary>\n' > "$pending"
-    mv -- "$pending" /tmp/shipwright/inbox/<task>.r2.critic.ping
+    printf 'DONE <task>: <result> — <one-line summary>\n' > "$pending"   # worker
+    printf 'VERDICT <task>: <pass|handback> @ <full-reviewed-commit> — <one-line summary>\n' > "$pending"   # critic
+    mv -- "$pending" /tmp/shipwright/inbox/<task>.ping
 
 - Event identity is the filename minus its final `.ping`: task + round +
   role. A first worker completion may use `<task>.ping`; its critic uses
@@ -41,15 +45,22 @@ new file. An existing claim is processed before claiming its replacement.
 Pending claims survive a relay restart and are retried there; inspect both
 the inbox and `.claimed/` when diagnosing pending pings.
 
-The relay types one line plus a separate Enter into the coordinator pane.
+**Coalescing:** the relay waits for a quiet window (default 6s,
+`RELAY_COALESCE`) and then types ALL pending events as ONE line — a single
+event as-is, or a batch `EVENTS n: <line1> | <line2> | …` — plus a separate
+Enter. One coordinator turn therefore drains a whole wave instead of one turn
+per ping; a lone event still flushes after the same window. The typed line
+carries each event's ping content, so the coordinator routes from it directly
+and reads a marker only when a line is ambiguous.
+
 DELIVER and claim removal occur only after BOTH tmux send commands exit
 successfully. This is tmux send-acknowledgment, not agent receipt, task
 acceptance, or an agent-side acknowledgment. Failed sends retain the claim:
 RETRY records the failed stage and attempt; after three failures, FAILED
 leaves the claim for an operator and disables automatic attempts for that
 event until restart. Each failure waits one second, followed by the normal
-three-second scan interval. The pi/mode-0 guard is rechecked on each pass;
-DEFER does not spend a send attempt.
+scan interval. The pi/mode-0 guard is rechecked on each pass; DEFER does not
+spend a send attempt.
 
 If text succeeds but Enter fails, the relay remembers that phase and retries
 only Enter, pausing other event sends to avoid mixing them into the same
@@ -104,8 +115,13 @@ This protocol check does not replace user merge authorization or the critic.
 ---
 
 Coordinator side:
-- The detached relay runs `scripts/relay.sh`: guarded typed delivery — injects only when the coordinator pane runs `pi` and is not in copy mode; otherwise `DEFER` + retain + retry. Log (`/tmp/shipwright/relay.log`) vocabulary: `ARRIVE`, `DEFER`, `RETRY`, `FAILED`, `DELIVER` (tmux send-acknowledged), and `DUP`.
-- Standing order: the coordinator reads markers (`.scratch/status/*.done`)
-  first thing every turn — before any status report or decision.
+- The detached relay runs `scripts/relay.sh`: guarded, COALESCED typed delivery
+  — injects only when the coordinator pane runs `pi` and is not in copy mode;
+  otherwise `DEFER` + retain + retry. One typed line may carry several events
+  (`EVENTS n: …`). Log (`/tmp/shipwright/relay.log`) vocabulary: `ARRIVE`,
+  `DEFER`, `RETRY`, `FAILED`, `DELIVER` (tmux send-acknowledged), and `DUP`.
+- Standing order: drain the inbox / typed batch first thing every turn — route
+  from the ping lines (they carry result/summary/head) and open a marker only
+  when a line is ambiguous. Never report "no news" without checking.
 - Coordinator→worker direction (assignments, corrections, review pointers)
   stays exactly as is (`prompt-target` into the worker pane).

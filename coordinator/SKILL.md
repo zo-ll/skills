@@ -20,23 +20,78 @@ diff or run its tests to form a quality judgement; you route the critic instead.
 Your decisions are made on protocol facts and the critic's verdict, never on
 your own reading of code.
 
+## Configuration (`.coordinator/config.json`, per repo)
+
+Role → harness/model assignments are DATA, never skill defaults, and the config
+is created ONCE per repo, then reused by every later session.
+
+**At the start of every session, look for `<repo>/.coordinator/config.json`:**
+
+- **Present** → load it and proceed; never re-ask. If your own running model is
+  not `coordinator.model`, say so before dispatching anything.
+- **Absent** → run FIRST-RUN SETUP with the user before any decompose, issue,
+  or dispatch:
+  1. Detect the environment (load the matching env runbook) and what the machine
+     offers (harnesses on PATH: `pi`, `claude`, `codex`, …; `tmux`).
+  2. Ask the user, in one batch, to assign every role its harness + provider +
+     model (+ flags: effort, permissions): coordinator, critic, researcher,
+     and each worker lane.
+  3. Confirm the choices resolve (commands exist / pin is full, not a bare
+     pattern that can match a keyless variant).
+  4. Write `.coordinator/config.json`, commit it with the repo, then proceed.
+     If the user prefers not to commit, honor that and record the assignments
+     under `## Decisions` in `COORDINATION.md` instead.
+
+Example shape (values are examples, NOT defaults):
+
+```json
+{
+  "coordinator": { "harness": "pi", "provider": "opencode-go", "model": "deepseek-flash" },
+  "critic":      { "harness": "pi", "provider": "opencode-go", "model": "muse-spark-1.3-contributor" },
+  "researcher":  { "harness": "pi", "provider": "opencode-go", "model": "muse-spark-1.3" },
+  "workers": {
+    "claude": { "harness": "claude", "model": "opus", "effort": "high" },
+    "codex":  { "harness": "codex", "model": "gpt-5.6-terra", "reasoning_effort": "high" }
+  }
+}
+```
+
+The operator launches the coordinator to match `coordinator`; the coordinator
+composes every other spawn from this file. Your env runbook maps each
+harness/model to concrete CLI flags. Define as many worker lanes as needed and
+route by risk: mechanical slices (renames, docs, mechanical refactors) to a
+cheaper lane, risky slices to the strong one. Keep `SKILL.md` and the config
+stable for the whole session so the provider's prefix cache keeps hitting;
+editing them mid-run invalidates it.
+
 ## Takeover (every fresh session or environment)
 
-1. Detect the environment — `tmux list-sessions` succeeds → load
+1. Read or create `.coordinator/config.json` (Configuration above) before
+   anything else; first-run setup comes before any dispatch.
+2. Detect the environment — `tmux list-sessions` succeeds → load
    `references/env-tmux.md` (your environment runbook); else ask the user
    once. Read ONLY your environment runbook.
-2. Run the environment's delivery script. [current] verify the relay/inbox is up.
-3. Read `COORDINATION.md`, the journal pointer, and the markers first thing
-   every turn (`find <worktrees> -path '*.scratch/status/*.done' -newer …`;
-   also read `/tmp/shipwright/inbox/`). Never report "no news" without checking.
-   Never dispatch a parked/paused item without the user's word.
-4. Check every worker is idle before giving it work; fresh session per task.
+3. Run the environment's delivery script (relay.sh); verify the relay/inbox is up.
+4. Drain wake input FIRST: read `/tmp/shipwright/inbox/` — or the single
+   batched line the relay typed. It carries TASK/RESULT/SUMMARY/HEAD, so route
+   from it; open a marker only when the ping is ambiguous. Never report
+   "no news" without checking.
+5. State check, change-gated (Phase 3 Token discipline): `rm -f
+   .coordinator/.state-hash` so THIS session always reads state once, then hash
+   before each later read. Never dispatch a parked/paused item without the
+   user's word.
+6. Check every worker is idle before giving it work; fresh session per task.
 
 You hold the whole picture; it lives in `COORDINATION.md`, not your context.
 Workers are focused, isolated, blind to the plan.
 
 ## Hard rules (env-agnostic)
 
+- Model discipline: every spawn takes its model from `.coordinator/config.json`
+  and passes it explicitly. NEVER let a harness default pick the model — pi
+  defaults to `deepseek-v4-flash`, codex to `gpt-5.6-sol`, and either silently
+  wins otherwise. Use the FULL provider-qualified id; a bare model pattern can
+  match a keyless catalog variant ("No API key found").
 - Only give a worker work when it is NOT working. Before every dispatch or
   follow-up, verify it is idle (your env runbook has the capture command), then
   and only then prompt it.
@@ -48,11 +103,6 @@ Workers are focused, isolated, blind to the plan.
   SINGLE LINE pointer to a file; content lives in the file the pointer names.
   Non-pi harnesses (claude/codex) may receive multi-line, but keep pointers
   uniform anyway.
-- Critic MUST be pinned: `--provider opencode-go --model
-  muse-spark-1.3-contributor` — the bare pattern `muse-spark-1.3` matches a
-  keyless `-free` catalog variant (error: "No API key found").
-- Codex workers ALWAYS pass `-m gpt-5.6-terra` — the codex config default
-  (`gpt-5.6-sol`) silently wins otherwise.
 
 ## Contract
 
@@ -104,19 +154,41 @@ each step a slice.
 
 ## Phase 3 — COORDINATION.md (live dashboard + journal)
 
-`COORDINATION.md` = live state only: status, goal, issues table
-(dispatched/reviewed/merged columns), waves, decisions, and the last ~15
-handoff bullets. Append bullets under `## Handoffs` — never at EOF.
+`COORDINATION.md` is read every turn, so it has a HARD BUDGET: ≤6 KB / ~150
+lines. Live state only — one-line status, one-line goal, an issues table with
+dispatched/reviewed/merged columns, waves, one-line decisions, and ≤15 ONE-LINE
+handoff bullets (no continuation lines). No prose paragraphs: any sentence that
+explains rather than states goes to the journal. Append bullets under
+`## Handoffs`, never at EOF.
 
 - **Rotational journal** — history, not the dashboard: evict the oldest bullets
   when >15 into `<repo>/.coordinator/journal/history-YYYY-MM.md` (commit + push
   with the repo). Never delete.
 - Keep an archive pointer under `## Handoffs` so archives are always in
   per-turn context.
-- **Guardrails after any rotation**: exactly one `## Handoffs` heading, ~15
-  bullets, no orphan continuation lines, no duplicate events, complete blocks.
+- **Guardrails after any rotation**: exactly one `## Handoffs` heading, ≤15
+  one-line bullets, no orphan continuation lines, no duplicate events, complete
+  blocks, file ≤6 KB.
 - **Answering history**: if asked about state/decisions not clearly in the
   dashboard, `rg` the journal BEFORE answering — never guess.
+
+### Token discipline (state reads)
+
+Never reload what has not moved. The hash file is a WITHIN-session shortcut:
+takeover deletes it, so each session reads state once, then gates later reads.
+Gate each read on a cheap hash:
+
+```bash
+h=$(sha1sum COORDINATION.md | cut -d' ' -f1)
+p=$(cat .coordinator/.state-hash 2>/dev/null)
+[ "$h" = "$p" ] || { printf '%s' "$h" > .coordinator/.state-hash; echo CHANGED; }
+```
+
+- `CHANGED` → read ONLY the moved part (`rg -n '^## Handoffs' -A16
+  COORDINATION.md`), never the whole file into reasoning.
+- unchanged → the last read still stands; act on any new ping.
+- Journal is never `cat`-ed: `rg` the exact term; the archive pointer is the
+  map, the journal is the reference.
 
 ## Phase 3b — Research-first (parked/new features)
 
@@ -163,7 +235,7 @@ Scope: <what to change>    Out of scope: <what not to touch>
 Build/test: <exact commands + expected results>
 Done when: <acceptance criteria from the issue>
 Constraints: work only in this worktree; commit locally; never push/merge/PR/tracker.
-Finish protocol: write <checkout>/.scratch/status/<task>.done + ping via /tmp/shipwright/inbox/<task>.ping (full spec: coordinator skill references/finish-protocol.md).
+Finish protocol: marker at <checkout>/.scratch/status/<task>.done + ONE atomic ping line `DONE <task>: <result> — <summary>` to /tmp/shipwright/inbox/<task>.ping (full spec: coordinator skill references/finish-protocol.md).
 Hand back: ## Completed / ## Files Changed / ## Notes
 ```
 
@@ -200,15 +272,24 @@ You superintend the loop; you do not inspect the work.
 
 ## Phase 5b — Finish protocol (no polling)
 
-Every finished worker turn leaves two artifacts:
+Every finished turn leaves TWO artifacts, the marker written before the ping:
 
-1. **Marker**: one line `done TS=… TASK=<slug> RESULT=<pass|handback|checkpoint|correction> SUMMARY=…` at `<checkout>/.scratch/status/<task>.done`.
-2. **Ping**: one line to `/tmp/shipwright/inbox/<task>.ping`; the environment's
-   delivery script (relay.sh — see your env runbook for the
-   delivery mechanism and modes) surfaces it to you.
+1. **Ping** (routes you): ONE atomic line to `/tmp/shipwright/inbox/<event>.ping`
+   — write a temp file whose name does NOT end `.ping`, then rename. Worker:
+   `DONE <task>: <result> — <summary>`. Critic:
+   `VERDICT <task>: <pass|handback> @ <full-head> — <summary>`. The line carries
+   the evidence; route from it and open the marker only when ambiguous.
+2. **Marker** (recovery): ONE line at `<checkout>/.scratch/status/<event>.done` —
+   `done TS=… TASK=<task> ROUND=… ROLE=… HEAD=<full-commit> RESULT=… SUMMARY=…`.
 
-Standing order: read markers first thing every turn — never report "no news"
-without checking. Full spec: `references/finish-protocol.md`.
+Rules: one line each; same event slug for ping and marker (`<task>`,
+`<task>.critic`, `<task>.r2`, `<task>.r2.critic`); a retry reuses its filename, a
+new round uses a new one. The relay dedupes by slug, so ping once. The relay
+coalesces wakes, so expect one turn to carry several events.
+
+Standing order: drain the inbox first thing every turn — never report "no news"
+without checking. Delivery failures, retries, and edge cases:
+`references/finish-protocol.md` (load only when you hit one).
 
 ## Phase 6 — Close
 

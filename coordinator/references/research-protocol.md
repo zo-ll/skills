@@ -2,8 +2,9 @@
 
 For parked/new features needing a decision before implementation (#33, #71,
 #72 style): the coordinator dispatches RESEARCH to the researcher window
-(muse-spark), gets a brief back, and routes it to the user. Research NEVER
-commits code and never decides — it returns a brief.
+(configured model, `.coordinator/config.json`), gets a brief back, and routes
+it to the user. Research NEVER commits code and never decides — it returns a
+brief.
 
 ## Dispatch
 
