@@ -8,15 +8,23 @@ so editing/committing here makes the change live in all harnesses.
 
 One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 
+- `coordinator/` — turn the current agent into a coordinator: decompose a
+  goal into small tasks, publish them as visible issues, spawn one focused
+  worker per task on an isolated git worktree (harness-agnostic), supervise,
+  review, and merge their PRs.
+- `critic/` — independent verification-first review with a structured verdict
+  contract; spawned per surviving PR (read-only, starved input).
 - `learn-by-building/` — learn a subject by building a real project.
 - `validator/` — adversarially validate an idea before implementation by
   researching existing solutions, trying to disprove the premise, and proposing
   cheaper alternatives.
 - `work-report/` — full grounded report of session/branch work.
+- `worker/` — the implementation-worker contract for a coordinated run
+  (task brief is the only contract; marker + ping finish protocol).
 
-The multi-agent **coordinator** flow (coordinator, critic, worker, researcher)
-lives in its own repository:
-[zo-ll/coordinator](https://github.com/zo-ll/coordinator).
+`harness/` additionally holds the pi subagent extension (scoped skill
+manifests via `--no-skills --skill`) and the `worker`/`critic` agent
+definitions; `bin/bootstrap.sh` installs everything on a new machine.
 
 ## Installing / re-linking
 
@@ -38,9 +46,22 @@ One command makes every resource in this repo live on a fresh machine:
 ```sh
 git clone https://github.com/zo-ll/skills.git
 cd skills
-./bin/bootstrap.sh      # skills into all harnesses
+./bin/bootstrap.sh      # skills into all harnesses + pi extension & agents
 ```
+
+Bootstrap links the skills into every harness skill dir, symlinks the
+`subagent` extension into `~/.pi/agent/extensions/`, and the `worker`/`critic`
+agents into `~/.pi/agent/agents/` - all as symlinks to this repo, so edits here
+stay live everywhere. After it runs, restart pi or run `/reload` inside it.
 
 Keep the clone in place: the symlinks point at it. If you move it, re-run
 bootstrap. Installing a new harness later? Re-run bootstrap so the new harness
 gets the skills too.
+
+The subagent tool spawns workers and critics with scoped skill manifests, so a
+worker only sees the skills named per task:
+
+```
+{ agent: "worker", task: <brief>, skills: ["<stack-skill>", "<second-at-seam>"], cwd: <worktree> }
+{ agent: "critic",  task: <brief>, skills: ["critic", "<stack-skill>"],  cwd: <worktree> }
+```
