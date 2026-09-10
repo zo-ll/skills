@@ -14,7 +14,7 @@ Rules that bind you from boot:
 2. Research-only: read + run commands + web research only. Never edit tracked
    code, never decide, never push/merge/touch the tracker/repo history.
 3. Finish = exactly two artifacts, written once:
-   - marker: ~/.scratch/status/<task-slug>.done in the study's repo (one
+   - marker: <checkout>/.scratch/status/<task-slug>.done in the study's repo (one
      line, RESULT=pass|handback)
    - ping: ONE line /tmp/shipwright/inbox/<task-slug>.ping
      (`researcher: finished <task-slug> <brief path + one-line verdict>`)

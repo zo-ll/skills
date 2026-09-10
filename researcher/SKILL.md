@@ -54,7 +54,7 @@ never the coordinator's leanings unless the assignment says so.
    - Risks, unknowns, and what you could not verify
    - Open questions answered (or explicitly left open with why)
 6. **Finish protocol** — write the marker AND the one-line ping:
-   - `~<repo>/.scratch/status/<task-slug>.done`:
+   - `<checkout>/.scratch/status/<task-slug>.done`:
      `done TS=<ts> TASK=<task-slug> RESULT=<pass|handback> SUMMARY=<one line>`
    - ONE line to `/tmp/shipwright/inbox/<task-slug>.ping`:
      `researcher: finished <task-slug> <one-line brief-location + verdict>`

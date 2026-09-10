@@ -8,9 +8,13 @@
 #   - an existing symlink to this repo is left alone
 #   - an existing real dir that is byte-identical is replaced with a symlink
 #   - an existing real dir that differs is skipped with a warning
+#   - our dangling symlinks (target deleted from this repo) are pruned
 #
 # Usage:  ./scripts/link.sh        # link all skills into all found harnesses
 #         ./scripts/link.sh foo    # link only the "foo" skill
+#
+# Also prunes this repo's dangling symlinks from each harness (skill deleted
+# or renamed here), so removals propagate the same way additions do.
 
 set -euo pipefail
 
@@ -55,9 +59,29 @@ link_one() { # repo_skill_dir harness_dir skill_name
   echo "linked: $target"
 }
 
+prune() { # harness_dir: remove our dangling symlinks (skill deleted/renamed in repo)
+  local harness="$1" link target
+  [ -d "$harness" ] || return 0
+  while IFS= read -r link; do
+    target="$(readlink "$link")" || continue
+    case "$target" in
+      "$REPO"/*) ;;   # ours
+      *) continue ;;   # owned by someone else - never touch
+    esac
+    [ -e "$link" ] && continue   # target exists: owned and live, leave alone
+    rm -f "$link"
+    echo "pruned (dangling): $link"
+  done < <(find "$harness" -maxdepth 1 -type l)
+}
+
 main() {
   local want="${1:-}"
   local linked=0 skipped=0
+
+  for harness in "${HARNESS_SKILL_DIRS[@]}"; do
+    [ -d "$harness" ] || continue
+    prune "$harness"
+  done
 
   for skill_dir in "$REPO"/*/; do
     [ -f "$skill_dir/SKILL.md" ] || continue
