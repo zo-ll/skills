@@ -30,7 +30,7 @@ One failing cheap check = stop and report, not continue and note. If an expensiv
 
 ## Judge against the standard
 
-- Load the same stack skill the worker used (writing-c/laravel/vue/rust/go/elixir) and follow its Review in risk order as your ladder.
+- Load the same stack skill the worker used (if any) and follow its Review in risk order as your ladder. If no stack skill applies, review against the repo's own conventions (AGENTS.md).
 - UI slices: judge against the design reference, never a hypothetical better design.
 - Watch producer blind spots: scope creep beyond the issue, tests that prove nothing, behavior asserted through internals, silent error paths.
 

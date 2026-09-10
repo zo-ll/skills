@@ -9,7 +9,6 @@ none were copied. Retrieval dates recorded per source.
 | "Building an Advanced Agentic Harness" (data4sci) | article | canonical reference | 2026-08-27 | Planner/Worker/Critic role split, verification hierarchy, cheap tier before LLM judge |
 | "prewalk" (stencil.so) | article | canonical reference | 2026-08-27 | Starved context rationale - the reviewer must not inherit the producer's framing |
 | `coordinator` (this repo) | own skill | local authority | 2026-08-27 | Verdict contract and routing: format must match what the coordinator parses |
-| `writing-laravel`, `writing-vue`, `writing-rust`, `writing-go` (this repo) | own skills | local authority | 2026-08-27 | Review in risk order ladders; the critic loads the same stack skill as the worker |
 
 ## Method
 

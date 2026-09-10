@@ -15,22 +15,12 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 - `critic/` — independent verification-first review with a structured verdict
   contract; spawned per surviving PR (read-only, starved input).
 - `learn-by-building/` — learn a subject by building a real project.
-- `shipwright/` — delegate work to an external coding-agent CLI in
-  tmux/Herdr and supervise it.
 - `validator/` — adversarially validate an idea before implementation by
   researching existing solutions, trying to disprove the premise, and proposing
   cheaper alternatives.
 - `work-report/` — full grounded report of session/branch work.
-- `writing-c/` — clean, maintainable C.
-- `writing-elixir/` — Elixir/OTP/Ecto base (stack-agnostic).
-- `writing-go/` — idiomatic Go.
-- `writing-js/` — JavaScript + TypeScript (TS as JS with types).
-- `writing-laravel/` — Laravel applications and packages.
-- `writing-phoenix/` — thin Phoenix layer over `writing-elixir` (routes,
-  contexts, LiveView, channels).
-- `writing-rust/` — clean, maintainable Rust.
-- `writing-vue/` — Vue 3 applications and components (pairs with
-  `writing-laravel`).
+- `worker/` — the implementation-worker contract for a coordinated run
+  (task brief is the only contract; marker + ping finish protocol).
 
 `harness/` additionally holds the pi subagent extension (scoped skill
 manifests via `--no-skills --skill`) and the `worker`/`critic` agent
@@ -72,6 +62,6 @@ The subagent tool spawns workers and critics with scoped skill manifests, so a
 worker only sees the skills named per task:
 
 ```
-{ agent: "worker", task: <brief>, skills: ["writing-laravel", "writing-vue"], cwd: <worktree> }
-{ agent: "critic",  task: <brief>, skills: ["critic", "writing-laravel"],  cwd: <worktree> }
+{ agent: "worker", task: <brief>, skills: ["<stack-skill>", "<second-at-seam>"], cwd: <worktree> }
+{ agent: "critic",  task: <brief>, skills: ["critic", "<stack-skill>"],  cwd: <worktree> }
 ```

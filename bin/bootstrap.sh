@@ -45,5 +45,5 @@ echo
 echo "Done. In pi, run /reload (or restart) so the subagent extension and"
 echo "agents are picked up. The subagent tool then spawns workers with"
 echo "scoped skill manifests:"
-echo "  { agent: 'worker', task: <brief>, skills: ['writing-laravel','writing-vue'], cwd: <worktree> }"
-echo "  { agent: 'critic', task: <brief>, skills: ['critic','writing-laravel'], cwd: <worktree> }"
+echo "  { agent: 'worker', task: <brief>, skills: ['<stack-skill>'], cwd: <worktree> }"
+echo "  { agent: 'critic', task: <brief>, skills: ['critic','<stack-skill>'], cwd: <worktree> }"

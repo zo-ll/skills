@@ -141,11 +141,9 @@ presented for approval. Wide refactors: expand → migrate in batches → contra
 each step a slice.
 
 - **Skill manifest**: derived from the repo, never the ask, decided by you.
-  Map by manifest/extension: `composer.json`→writing-laravel;
-  `package.json`+`*.vue`→writing-vue(/writing-js); `mix.exs`+phoenix→
-  writing-elixir(+writing-phoenix at seams); `Cargo.toml`→writing-rust;
-  `go.mod`→writing-go; make/cc→writing-c. One smallest skill per slice's core
-  layer; add a second only when the slice crosses a seam. Err on under-load.
+  Pick the smallest INSTALLED skill that matches the slice's core layer (the
+  `skill` tool lists what is available); add a second only when the slice
+  crosses a seam. If none applies, load none. Err on under-load.
 - Publish one issue per slice, blockers first, `ready-for-agent` label, with
   acceptance criteria; UI-bearing slices include a Design reference section
   (also sent to the critic).
