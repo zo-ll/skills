@@ -8,10 +8,6 @@ so editing/committing here makes the change live in all harnesses.
 
 One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 
-- `coordinator/` — turn the current agent into a coordinator: decompose a
-  goal into small tasks, publish them as visible issues, spawn one focused
-  worker per task on an isolated git worktree (harness-agnostic), supervise,
-  review, and merge their PRs.
 - `critic/` — independent verification-first review with a structured verdict
   contract; spawned per surviving PR (read-only, starved input).
 - `learn-by-building/` — learn a subject by building a real project.
@@ -23,6 +19,9 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 - `work-report/` — full grounded report of session/branch work.
 - `worker/` — the implementation-worker contract for a coordinated run
   (task brief is the only contract; marker + ping finish protocol).
+
+`.bundled/` contains excluded skill bundles. Its contents are not discovered or
+installed by `scripts/link.sh`.
 
 `harness/` additionally holds the pi subagent extension (scoped skill
 manifests via `--no-skills --skill`) and the `worker`/`critic` agent
