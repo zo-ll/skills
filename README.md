@@ -18,6 +18,8 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 - `validator/` — adversarially validate an idea before implementation by
   researching existing solutions, trying to disprove the premise, and proposing
   cheaper alternatives.
+- `code-review/` — coverage-accountable, precision-first review of Git changes
+  with deterministic scope, rule resolution, and evidence-backed findings.
 - `work-report/` — full grounded report of session/branch work.
 - `worker/` — the implementation-worker contract for a coordinated run
   (task brief is the only contract; marker + ping finish protocol).
