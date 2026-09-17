@@ -1,0 +1,2 @@
+# Disabled/private bundles stay local and are not part of this repository.
+.bundled/

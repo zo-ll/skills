@@ -16,9 +16,8 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
   with deterministic scope, rule resolution, and evidence-backed findings.
 - `work-report/` — full grounded report of session/branch work.
 
-`.bundled/` contains the excluded coordinator bundle and its supporting
-critic/researcher/worker skills and harness files. Its contents are not
-discovered or installed by `scripts/link.sh` or `bin/bootstrap.sh`.
+The coordinator bundle is maintained separately and is intentionally not part
+of this repository. This repository contains only active skills.
 
 ## Installing / re-linking
 
