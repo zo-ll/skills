@@ -8,8 +8,6 @@ so editing/committing here makes the change live in all harnesses.
 
 One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 
-- `critic/` — independent verification-first review with a structured verdict
-  contract; spawned per surviving PR (read-only, starved input).
 - `learn-by-building/` — learn a subject by building a real project.
 - `validator/` — adversarially validate an idea before implementation by
   researching existing solutions, trying to disprove the premise, and proposing
@@ -17,15 +15,10 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 - `code-review/` — coverage-accountable, precision-first review of Git changes
   with deterministic scope, rule resolution, and evidence-backed findings.
 - `work-report/` — full grounded report of session/branch work.
-- `worker/` — the implementation-worker contract for a coordinated run
-  (task brief is the only contract; marker + ping finish protocol).
 
-`.bundled/` contains excluded skill bundles. Its contents are not discovered or
-installed by `scripts/link.sh`.
-
-`harness/` additionally holds the pi subagent extension (scoped skill
-manifests via `--no-skills --skill`) and the `worker`/`critic` agent
-definitions; `bin/bootstrap.sh` installs everything on a new machine.
+`.bundled/` contains the excluded coordinator bundle and its supporting
+critic/researcher/worker skills and harness files. Its contents are not
+discovered or installed by `scripts/link.sh` or `bin/bootstrap.sh`.
 
 ## Installing / re-linking
 
@@ -47,22 +40,12 @@ One command makes every resource in this repo live on a fresh machine:
 ```sh
 git clone https://github.com/zo-ll/skills.git
 cd skills
-./bin/bootstrap.sh      # skills into all harnesses + pi extension & agents
+./bin/bootstrap.sh      # active skills into all discovered harnesses
 ```
 
-Bootstrap links the skills into every harness skill dir, symlinks the
-`subagent` extension into `~/.pi/agent/extensions/`, and the `worker`/`critic`
-agents into `~/.pi/agent/agents/` - all as symlinks to this repo, so edits here
-stay live everywhere. After it runs, restart pi or run `/reload` inside it.
+Bootstrap links active skills into every discovered harness skill directory.
+After it runs, restart the harness if it does not detect the changes.
 
 Keep the clone in place: the symlinks point at it. If you move it, re-run
-bootstrap. Installing a new harness later? Re-run bootstrap so the new harness
-gets the skills too.
-
-The subagent tool spawns workers and critics with scoped skill manifests, so a
-worker only sees the skills named per task:
-
-```
-{ agent: "worker", task: <brief>, skills: ["<stack-skill>", "<second-at-seam>"], cwd: <worktree> }
-{ agent: "critic",  task: <brief>, skills: ["critic", "<stack-skill>"],  cwd: <worktree> }
-```
+bootstrap. Installing a new harness later? Re-run bootstrap so it gets the
+active skills too.
