@@ -16,8 +16,7 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
   with deterministic scope, rule resolution, and evidence-backed findings.
 - `work-report/` — full grounded report of session/branch work.
 
-The coordinator bundle is maintained separately and is intentionally not part
-of this repository. This repository contains only active skills.
+This repository contains only active skills.
 
 ## Installing / re-linking
 
