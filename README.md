@@ -18,6 +18,12 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 - `cdp/` — drive a real Chrome over the Chrome DevTools Protocol to trace a
   page's requests, console, and Core Web Vitals, and grade the response
   headers the browser enforces.
+- `ste/` — write or rewrite text in ASD-STE100 Simplified Technical English
+  (default "80% STE": the writing rules without the full dictionary).
+- `diagram/` — explain with a grounded diagram instead of prose; picks the
+  form from the content's shape, renders inline Mermaid or an HTML/SVG file.
+- `explainer/` — build a throwaway, interactive single-file HTML page that
+  explains one thing (a PR, a system, a decision), opened and discarded.
 
 This repository contains only active skills.
 
