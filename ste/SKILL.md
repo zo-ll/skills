@@ -3,10 +3,10 @@ name: ste
 description: >-
   Write explanations in ASD-STE100 Simplified Technical English, the controlled
   language from aerospace maintenance manuals: short sentences, one instruction
-  per sentence, active voice, one word one meaning. Default is "80% STE" (the
-  spirit, not the full dictionary). Use on "ste", "simplified technical
-  english", "asd-ste100", "explain plainly", "make this readable", "80% ste",
-  or when the user asks to rewrite text so it is easier to read.
+  per sentence, active voice, one word one meaning. Default is full STE (100%):
+  the writing rules plus the approved-word rules. Use on "ste", "simplified
+  technical english", "asd-ste100", "explain plainly", "make this readable",
+  "100% ste", or when the user asks to rewrite text so it is easier to read.
 metadata:
   purpose: personal host-agent skill
   version: "1.0.0"
@@ -19,13 +19,14 @@ misread it. Apply this to your own explanations, or rewrite text that the user g
 
 ## Levels
 
-- `lite` / `80%` (default): use the writing rules below. Use normal
-  vocabulary, but prefer the simplest common word.
-- `full`: also use the approved-word rules. Use each word with one meaning
-  only, and use only the approved parts of speech.
+- `full` / `100%` (default): use the writing rules below and the approved-word
+  rules. Use each word with one meaning only, and use only the approved parts
+  of speech.
+- `lite` / `80%`: use the writing rules only. Use normal vocabulary, but
+  prefer the simplest common word. Use this level only when the user asks for it.
 
-The user can set the level with words like "full ste" or "ste lite". If no
-level is given, use 80%.
+The user can set the level with words like "ste lite" or "full ste". If no
+level is given, use full.
 
 ## Writing rules
 
@@ -66,9 +67,9 @@ level is given, use 80%.
   `WARNING: Do not run this on main. It rewrites published history.`
 - Give the conditions before the action: "If the test fails, read the log."
 
-## Full mode: approved-word rules
+## Approved-word rules (full)
 
-Prefer these replacements:
+Use these replacements:
 
 | Do not use | Use |
 |---|---|
