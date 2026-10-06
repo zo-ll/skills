@@ -15,6 +15,10 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 - `code-review/` — coverage-accountable, precision-first review of Git changes
   with deterministic scope, rule resolution, and evidence-backed findings.
 - `work-report/` — full grounded report of session/branch work.
+- `how/` — explain implementation, runtime flow, ownership, and boundaries
+  from code evidence.
+- `why/` — reconstruct design rationale from historical evidence, with
+  citations, confidence tiers, and explicit search limits.
 - `cdp/` — drive a real Chrome over the Chrome DevTools Protocol to trace a
   page's requests, console, and Core Web Vitals, and grade the response
   headers the browser enforces.
