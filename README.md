@@ -28,6 +28,8 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
   form from the content's shape, renders inline Mermaid or an HTML/SVG file.
 - `explainer/` — build a throwaway, interactive single-file HTML page that
   explains one thing (a PR, a system, a decision), opened and discarded.
+- `drive-the-app/` — drive an app's actual UI against its contracts, with
+  isolated fixtures, direct evidence, safe pause/resume, and explicit limits.
 
 This repository contains only active skills.
 
