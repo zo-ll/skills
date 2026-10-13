@@ -28,6 +28,16 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
   form from the content's shape, renders inline Mermaid or an HTML/SVG file.
 - `explainer/` — build a throwaway, interactive single-file HTML page that
   explains one thing (a PR, a system, a decision), opened and discarded.
+- `prove-it/` — check the real artifact before declaring work done; reject
+  proxies such as a build that compiles or a self-report.
+- `cross-check/` — get an independent verdict from a second agent on a
+  different model family, without the maker's reasons.
+- `verify-app/` — make an app verifiable with one runnable command and one
+  short document, plus a feature map.
+- `check-the-check/` — keep the verification command and its feature map honest
+  as the app changes.
+- `small-units/` — break work into units that each end in a checkable state,
+  and do not advance until the current unit is green.
 
 This repository contains only active skills.
 
