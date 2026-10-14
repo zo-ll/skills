@@ -25,6 +25,7 @@ HARNESS_SKILL_DIRS=(
   "$HOME/.pi/agent/skills"
   "$HOME/.agents/skills"
   "$HOME/.claude/skills"
+  "$HOME/.claude-work/skills"
   "$HOME/.codex/skills"
   "$HOME/.config/crush/skills"
   "$HOME/.config/devin/skills"
