@@ -38,6 +38,11 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
   as the app changes.
 - `small-units/` — break work into units that each end in a checkable state,
   and do not advance until the current unit is green.
+- `drive-the-app/` — drive an app's actual UI against its contracts, with
+  isolated fixtures, direct evidence, safe pause/resume, and explicit limits.
+- `drive-the-website/` — browser-only companion of `drive-the-app`: drive a
+  served website over CDP, compare each page and flow with its acceptance
+  criteria, and keep evidence for each result.
 
 This repository contains only active skills.
 
