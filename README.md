@@ -32,6 +32,8 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
   proxies such as a build that compiles or a self-report.
 - `cross-check/` — get an independent verdict from a second agent on a
   different model family, without the maker's reasons.
+- `spawn-critic/` — start a full DeepSeek Pi session in a separate tmux window.
+  The critic sends a completion prompt directly to the coordinator.
 - `verify-app/` — make an app verifiable with one runnable command and one
   short document, plus a feature map.
 - `check-the-check/` — keep the verification command and its feature map honest
