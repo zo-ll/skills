@@ -5,7 +5,7 @@ description: >-
   window. The critic sends its completion prompt directly to the coordinator
   through tmux. Use for "spawn critic", "spawn-critic", "get a critic", or a
   separate Pi review with asynchronous notification. Do not wait or poll.
-compatibility: Requires Pi, tmux, Bash, and Git on the same host.
+compatibility: Requires Pi, tmux, Bash, and Git on the same host. GitHub issue checks require gh.
 ---
 
 # Spawn critic
@@ -15,6 +15,8 @@ Use DeepSeek by default. The user can select another model.
 Notify the coordinator through a direct tmux prompt.
 Do not use print mode, RPC, a subagent tool, or a shell-only critic.
 No helper program is necessary.
+After confirmed issue closure, delete the associated critic window.
+Keep the report and Pi session history.
 
 ## Prepare the review
 
@@ -27,6 +29,8 @@ No helper program is necessary.
 
 Supply criteria and artifacts, not the maker's reasons or a suggested verdict.
 Include the goal, owner decisions, constraints, issue number, and PR number when applicable.
+Keep one issue per critic window.
+Record the issue repository and number for window cleanup.
 For a Git review, require the `code-review` skill and complete file coverage.
 For other artifacts, identify each required outcome and its evidence.
 
@@ -42,6 +46,8 @@ Keep the resulting paths and hashes for the prompt and launch commands.
 repo=/absolute/path/to/repo
 base_ref=origin/master
 model=opencode-go/deepseek-v4-pro
+issue_repo=owner/repository
+issue_number=123
 
 origin_pane=${TMUX_PANE:?This task requires tmux}
 socket=$(tmux display-message -p -t "$origin_pane" '#{socket_path}')
@@ -57,7 +63,8 @@ run=$(mktemp -d "$state_root/review.XXXXXXXX")
 run_id=${run##*/}
 window="critic-$run_id"
 printf '%s\n' "repo=$repo" "base=$base" "head=$head" "model=$model" \
-  "pane=$origin_pane" "socket=$socket" "session=$session" > "$run/target.txt"
+  "pane=$origin_pane" "socket=$socket" "session=$session" \
+  "issue_repo=$issue_repo" "issue_number=$issue_number" > "$run/target.txt"
 ```
 
 The default model is `opencode-go/deepseek-v4-pro` with high reasoning.
@@ -117,7 +124,11 @@ Bash `%q` protects paths and arguments in the tmux shell command.
 ```bash
 printf -v launch '%q ' pi --model "$model" --thinking high \
   --name "$window" --session-dir "$run/sessions" "@$run/prompt.md"
-tmux -S "$socket" new-window -d -t "$session:" -n "$window" -c "$repo" "$launch"
+critic=$(tmux -S "$socket" new-window -d -P -F '#{window_id} #{pane_id}' \
+  -t "$session:" -n "$window" -c "$repo" "$launch")
+read -r critic_window critic_pane <<< "$critic"
+tmux -S "$socket" set-option -w -t "$critic_window" @spawn_critic_run "$run_id"
+printf '%s\n' "critic_window=$critic_window" "critic_pane=$critic_pane" >> "$run/target.txt"
 ```
 
 1. Inspect the new pane once to confirm that Pi received the prompt.
@@ -131,7 +142,9 @@ Keep the coordinator editor empty for the completion prompt.
 
 Keep the reviewed source unchanged until the critic completes the review.
 If source work must continue, use a separate worktree.
-Do not close the critic window unless the user asks.
+Keep the critic window while its issue remains open.
+Approval or PR merge alone does not trigger cleanup.
+After confirmed issue closure, follow the cleanup procedure below.
 
 ## Process the notification
 
@@ -155,3 +168,52 @@ If the user authorizes merge after approval, require approval for the current he
 Before merge, check the base, unresolved comments, worktree state, and exact CI head.
 Use an expected-head condition with the merge command when the host supports it.
 Confirm the remote merge result before you report success.
+
+## Delete the window after issue closure
+
+The coordinator owns cleanup. The critic does not delete its own window.
+Issue closure triggers cleanup; review completion alone does not.
+Do not close an issue merely to delete its critic window.
+If no issue is associated, keep the window until the user requests cleanup.
+
+1. Confirm that the critic completed its review.
+2. Make sure the report and completion marker exist outside tmux.
+3. Confirm the associated issue's closed state on its host.
+4. Recover the recorded socket, window ID, pane ID, and run ID.
+5. Verify that the window still belongs to that run.
+6. Delete only that window.
+7. Confirm that the window no longer exists.
+
+Use stable IDs, not a reusable window index or name.
+If the window has extra panes or a different run marker, stop cleanup.
+Never delete the coordinator window or another issue's critic window.
+If the issue remains open for device acceptance, keep the critic window.
+If issue lookup fails, keep the window and report the failure.
+Check closure after the normal issue workflow or an explicit closure notice.
+Do not add a wait loop or poll the issue.
+
+For GitHub, use the captured values in this example.
+Recover values as data; do not execute `target.txt` as a shell script.
+
+```bash
+test -s "$run/REPORT.md" && test -s "$run/DONE" || exit 1
+state=$(gh issue view "$issue_number" --repo "$issue_repo" --json state --jq .state) || exit 1
+if [ "$state" = CLOSED ]; then
+  coordinator_window=$(tmux -S "$socket" display-message -p -t "$origin_pane" '#{window_id}') || exit 1
+  test "$critic_window" != "$coordinator_window" || exit 1
+  marker=$(tmux -S "$socket" show-options -w -v -t "$critic_window" @spawn_critic_run) || exit 1
+  test "$marker" = "$run_id" || exit 1
+  panes=$(tmux -S "$socket" list-panes -t "$critic_window" -F '#{pane_id}') || exit 1
+  test "$panes" = "$critic_pane" || exit 1
+  tmux -S "$socket" kill-window -t "$critic_window" || exit 1
+  # A successful lookup means the window still exists. A server error is not proof of deletion.
+  remaining=$(tmux -S "$socket" list-windows -a -F '#{window_id}') || exit 1
+  if printf '%s\n' "$remaining" | grep -Fxq -- "$critic_window"; then
+    printf '%s\n' 'Critic window cleanup failed.' >&2
+    exit 1
+  fi
+fi
+```
+
+Preserve the private run directory, report, completion marker, and session history.
+Window cleanup must not delete those files.
