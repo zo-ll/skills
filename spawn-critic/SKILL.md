@@ -45,7 +45,7 @@ Keep the resulting paths and hashes for the prompt and launch commands.
 ```bash
 repo=/absolute/path/to/repo
 base_ref=origin/master
-model=opencode-go/deepseek-v4-pro
+model=opencode-go/deepseek-v4.1-flash
 issue_repo=owner/repository
 issue_number=123
 
@@ -67,7 +67,7 @@ printf '%s\n' "repo=$repo" "base=$base" "head=$head" "model=$model" \
   "issue_repo=$issue_repo" "issue_number=$issue_number" > "$run/target.txt"
 ```
 
-The default model is `opencode-go/deepseek-v4-pro` with high reasoning.
+The default model is `opencode-go/deepseek-v4.1-flash` with high reasoning.
 Honor an explicit user model choice.
 If the model lacks credentials, report the failure.
 Do not silently select another family.
