@@ -32,13 +32,3 @@ Do not add a framework or change repository configuration to satisfy this skill.
 9. **Keep failures explicit.** Catch errors only where you can recover or add useful context. Preserve the original cause. Use the repository's error convention. Never convert failure into a success value without an explicit contract.
 
 10. **Test the contract.** Test observable results, invalid inputs, and relevant failure paths. Add type tests when inference or assignability forms part of the API. Run the relevant tests, type checks, and lint checks. Report checks that you cannot run.
-
-## Sources
-
-This selection adapts useful principles, not every repository's conventions.
-
-- [TypeScript](https://github.com/microsoft/TypeScript/wiki/Coding-guidelines): small exports and ownership of mutable data.
-- [VS Code](https://github.com/microsoft/vscode/blob/main/.github/copilot-instructions.md): module boundaries, explicit dependencies, resource cleanup, and focused checks.
-- [typescript-eslint](https://typescript-eslint.io/blog/avoiding-anys): unsafe types; [promise rules](https://typescript-eslint.io/rules/no-floating-promises): rejected promises.
-- [tRPC](https://github.com/trpc/trpc/blob/main/www/v11/docs/server/validators.md): runtime validation and inferred contracts.
-- [Redux](https://redux.js.org/style-guide/): valid states, pure calculations, and minimal state.
