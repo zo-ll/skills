@@ -15,6 +15,7 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 - `code-review/` — coverage-accountable, precision-first review of Git changes
   with deterministic scope, rule resolution, and evidence-backed findings.
 - `work-report/` — full grounded report of session/branch work.
+- `writing-ts/` — ten TypeScript rules for type safety, module boundaries, resource cleanup, and tests.
 - `how/` — explain implementation, runtime flow, ownership, and boundaries
   from code evidence.
 - `why/` — reconstruct design rationale from historical evidence, with
