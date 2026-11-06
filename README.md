@@ -8,6 +8,7 @@ so editing/committing here makes the change live in all harnesses.
 
 One directory per skill, each with a `SKILL.md` (Agent Skills standard):
 
+- `build/` — implement a task with the existing skills: inspect source, make small changes, and verify actual behavior. No Filo or automatic review.
 - `learn-by-building/` — learn a subject by building a real project.
 - `validator/` — adversarially validate an idea before implementation by
   researching existing solutions, trying to disprove the premise, and proposing
@@ -49,6 +50,22 @@ One directory per skill, each with a `SKILL.md` (Agent Skills standard):
   criteria, and keep evidence for each result.
 
 This repository contains only active skills.
+
+## Build workflow
+
+Invoke `build` through your harness's skill interface. For example, ask:
+
+```text
+Use build to implement issue #4 in zo-ll/pleat.
+```
+
+The current agent uses `how`, `small-units`, and `prove-it`. It selects other skills only when the task requires them.
+
+The workflow uses the project's existing verification command. It does not start review agents or publish changes without authorization.
+
+Read `build/SKILL.md` for the harness-agnostic workflow.
+
+An optional Pi test adapter lives in `build/tests/smoke_pi.py`. Run it with `python3 build/tests/smoke_pi.py --model provider/id`. It uses model tokens; Pi is not a dependency of the skill.
 
 ## Installing / re-linking
 
