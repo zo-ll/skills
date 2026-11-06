@@ -7,7 +7,6 @@ description: >-
   The current agent does the work. No Filo, automatic delegation, or mandatory
   independent review.
 license: MIT
-disable-model-invocation: true
 ---
 
 # Build
