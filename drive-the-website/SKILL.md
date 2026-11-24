@@ -1,11 +1,11 @@
 ---
 name: drive-the-website
 description: >-
-  Drive a website in a real browser over CDP, compare each page and flow with
-  its acceptance criteria, and keep evidence for each result. Use for "drive
-  the website", "pilot localhost", "check the changes in the browser", "click
-  through the flow", copy or price acceptance, or an end-to-end web check.
-  Browser-only companion of drive-the-app.
+  Drive a website in a visible browser window over CDP, compare each page and
+  flow with its acceptance criteria, and keep evidence for each result. Use for
+  "drive the website", "pilot localhost", "check the changes in the browser",
+  "click through the flow", copy or price acceptance, or an end-to-end web
+  check. Browser-only companion of drive-the-app.
 license: MIT
 ---
 
@@ -15,6 +15,23 @@ Test the served website through its UI. A build, a lint run, and a file diff do 
 The page can show a value from a database, a cache, or a stale bundle instead of the edited file.
 
 The driver is `scripts/drive.mjs`. It needs Node 22 or later and a local Chromium. It has no dependencies.
+
+## The browser window stays visible
+
+The driver opens a real Chromium window on the screen. DevTools opens docked on the right with the Network panel selected.
+The user watches each step and each request. The agent reads the same data from the terminal and the evidence files.
+
+1. Keep the window visible during the run. Do not cover it, move it, or resize it.
+2. Add `--net-log` to print each request with its status to the terminal. Use this option when the user asks about the network.
+3. Add `--keep-open` to leave the window open after the run. The user can then read the Network panel at leisure.
+4. Use `--headless` only for CI or a machine with no display. Tell the user when you use it.
+5. Give the user the run command when they must watch the screen. The agent cannot see the screen.
+6. Set `"noDevtools": true` in the plan to close the DevTools pane, for example on a small screen.
+
+With `--attach`, the driver uses the browser that is already open. Open the Network panel in that browser yourself.
+
+The driver writes `network.jsonl` for every run. The file holds the method, the URL, the status, the type, the size, and the time of each request.
+The window and the Network panel show the same requests, so the user and the agent can compare them.
 
 ## 1. Establish the boundary
 
@@ -90,7 +107,7 @@ A failed action stops its unit, because the page state is then unknown. The next
 Run it:
 
 ```sh
-node scripts/drive.mjs plan.json --out <evidence dir> [--only unit-a,unit-b] [--attach 9222] [--headful]
+node scripts/drive.mjs plan.json --out <evidence dir> [--only unit-a,unit-b] [--attach 9222] [--net-log] [--keep-open] [--headless]
 ```
 
 Exit code 0 means all checks passed. Exit code 1 means a check failed. Exit code 2 means a step was blocked.
@@ -169,8 +186,9 @@ Find the process that owns the port before you restart a server. Do not stop a s
 
 The driver writes these files to the `--out` folder:
 
-- `run.json`: the plan, the origin, the artifact, and the browser version.
+- `run.json`: the plan, the origin, the artifact, the browser version, and the run mode (visible, headless, or attached).
 - `results.jsonl`: one line for each check, with the expected and observed values.
+- `network.jsonl`: one line for each request, with the method, URL, status, type, size, and time.
 - `<unit>.diagnostics.json`: console errors, exceptions, and failed requests for each unit.
 - Screenshots and text dumps for each `shot`, `dump`, failure, and block.
 

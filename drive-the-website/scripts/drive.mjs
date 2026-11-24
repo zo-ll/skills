@@ -4,8 +4,11 @@ import { writeFileSync, readFileSync, mkdirSync, readdirSync, existsSync, append
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 
-const HELP = `usage: drive.mjs <plan.json> [--out dir] [--only unit[,unit]] [--attach port] [--headful] [--browser path]
-       drive.mjs --snapshot <url> [--attach port] [--wait-text text]`
+const HELP = `usage: drive.mjs <plan.json> [--out dir] [--only unit[,unit]] [--attach port] [--headless] [--net-log] [--keep-open] [--browser path]
+       drive.mjs --snapshot <url> [--attach port] [--wait-text text] [--headless]
+
+A visible Chromium window opens by default. DevTools opens docked on the right with the Network panel selected.
+Use --headless only for CI or a machine with no display.`
 
 const argv = process.argv.slice(2)
 const flag = (name) => { const i = argv.indexOf(name); return i === -1 ? undefined : argv.splice(i, 2)[1] }
@@ -16,13 +19,18 @@ const attach = flag('--attach')
 const browserArg = flag('--browser') ?? process.env.CDP_BROWSER
 const snapshotUrl = flag('--snapshot')
 const waitText = flag('--wait-text')
-const headful = bool('--headful')
+const headless = bool('--headless')
+const headful = !headless
+bool('--headful') // accepted and ignored, the run is visible by default
+const netLog = bool('--net-log')
+const keepOpen = bool('--keep-open')
 if (bool('--help') || (!snapshotUrl && !argv[0])) { console.log(HELP); process.exit(0) }
 
 const plan = snapshotUrl ? { origin: new URL(snapshotUrl).origin, units: [{ name: 'snapshot', steps: [{ goto: snapshotUrl }, ...(waitText ? [{ wait: { text: waitText } }] : []), { dump: 'snapshot' }] }] } : JSON.parse(readFileSync(argv[0], 'utf8'))
 const TIMEOUT = plan.timeout ?? 20000
 const IDLE_MS = plan.idleMs ?? 500
 const ignore = (plan.ignoreConsole ?? []).map((p) => new RegExp(p))
+const liveNet = netLog || !!plan.networkLog
 const stamp = new Date().toISOString().replace(/[:.]/g, '-')
 const out = resolve(outArg ?? join(process.cwd(), 'drive-out', stamp))
 mkdirSync(out, { recursive: true })
@@ -44,15 +52,33 @@ function findBrowser () {
 
 let proc
 let port = attach
+const view = plan.viewport ?? { width: 1366, height: 900 }
 if (!attach) {
   port = 9300 + Math.floor(Math.random() * 500)
-  proc = spawn(findBrowser(), [...(headful ? [] : ['--headless=new']), `--remote-debugging-port=${port}`, '--no-sandbox', '--no-first-run', `--user-data-dir=${out}/.profile`, 'about:blank'], { stdio: 'ignore' })
+  const args = [
+    ...(headful ? [] : ['--headless=new']),
+    `--remote-debugging-port=${port}`,
+    '--no-sandbox', '--no-first-run',
+    `--user-data-dir=${out}/.profile`,
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding',
+    '--disable-background-timer-throttling'
+  ]
+  if (headful) {
+    // Keep the page area at the plan width beside the DevTools pane.
+    args.push(`--window-size=${view.width + 640},${view.height + 110}`, '--window-position=60,60')
+    if (!plan.noDevtools) args.push('--auto-open-devtools-for-tabs')
+  }
+  args.push('about:blank')
+  proc = spawn(findBrowser(), args, { stdio: 'ignore' })
 }
 const http = `http://127.0.0.1:${port}`
 let target
 for (let i = 0; i < 75 && !target; i++) {
   try {
-    target = attach ? await (await fetch(`${http}/json/new?about:blank`, { method: 'PUT' })).json() : (await (await fetch(`${http}/json`)).json()).find((t) => t.type === 'page')
+    const list = attach ? null : await (await fetch(`${http}/json`)).json()
+    // The DevTools front-end also reports type "page"; never drive it.
+    target = attach ? await (await fetch(`${http}/json/new?about:blank`, { method: 'PUT' })).json() : list.find((t) => t.type === 'page' && !t.url.startsWith('devtools://'))
   } catch { await sleep(200) }
 }
 if (!target) { console.error('browser did not expose a page target on port ' + port); proc?.kill(); process.exit(2) }
@@ -66,6 +92,17 @@ let diagnostics = []
 const inflight = new Map()
 let lastNet = Date.now()
 const originOf = (u) => { try { return new URL(u).origin } catch { return '' } }
+const shortUrl = (u) => { try { const x = new URL(u); return (originOf(u) === plan.origin ? '' : x.origin) + x.pathname + x.search } catch { return String(u) } }
+const requests = new Map()
+const networkFile = join(out, 'network.jsonl')
+const writeRequest = (r) => {
+  if (!r) return
+  appendFileSync(networkFile, JSON.stringify(r) + '\n')
+  if (!liveNet) return
+  const line = `${r.status ?? '----'} ${String(r.method ?? '').padEnd(5)} ${shortUrl(r.url)}`.slice(0, 240)
+  if (r.error) console.log(`NET ${line}  (${r.error})`)
+  else console.log(`NET ${line}`)
+}
 const note = (kind, text, url = '') => {
   const line = norm(text).slice(0, 400)
   if (ignore.some((re) => re.test(line) || re.test(url))) return
@@ -76,12 +113,28 @@ ws.addEventListener('message', ({ data }) => {
   if (msg.id && pending.has(msg.id)) { pending.get(msg.id)(msg); pending.delete(msg.id); return }
   const p = msg.params ?? {}
   switch (msg.method) {
-    case 'Network.requestWillBeSent': inflight.set(p.requestId, p.request.url); lastNet = Date.now(); break
-    case 'Network.loadingFinished': inflight.delete(p.requestId); lastNet = Date.now(); break
-    case 'Network.loadingFailed':
-      if (!p.canceled && p.blockedReason !== 'inspector') note('netfail', p.errorText, inflight.get(p.requestId))
+    case 'Network.requestWillBeSent':
+      inflight.set(p.requestId, p.request.url); lastNet = Date.now()
+      requests.set(p.requestId, { url: p.request.url, method: p.request.method, type: p.type, start: Date.now() })
+      break
+    case 'Network.loadingFinished': {
+      const r = requests.get(p.requestId)
+      if (r) { writeRequest({ ...r, ms: Date.now() - r.start, bytes: p.encodedDataLength }); requests.delete(p.requestId) }
       inflight.delete(p.requestId); lastNet = Date.now(); break
-    case 'Network.responseReceived': if (p.response.status >= 400) note('http', `${p.response.status} ${p.response.url}`, p.response.url); break
+    }
+    case 'Network.loadingFailed': {
+      const url = inflight.get(p.requestId)
+      if (!p.canceled && p.blockedReason !== 'inspector') note('netfail', p.errorText, url)
+      const r = requests.get(p.requestId)
+      if (r) { writeRequest({ ...r, ms: Date.now() - r.start, error: p.errorText ?? 'failed' }); requests.delete(p.requestId) }
+      inflight.delete(p.requestId); lastNet = Date.now(); break
+    }
+    case 'Network.responseReceived': {
+      const r = requests.get(p.requestId)
+      if (r) { r.status = p.response.status; r.mime = p.response.mimeType; r.cached = !!(p.response.fromDiskCache || p.response.fromMemoryCache) }
+      if (p.response.status >= 400) note('http', `${p.response.status} ${p.response.url}`, p.response.url)
+      break
+    }
     case 'Runtime.exceptionThrown': {
       const d = p.exceptionDetails
       const frames = (d.stackTrace?.callFrames ?? []).slice(0, 4).map((f) => `${f.functionName || '?'} ${f.url.replace(plan.origin, '')}:${f.lineNumber}`).join(' < ')
@@ -111,11 +164,63 @@ const once = (method, ms) => new Promise((res) => {
   listeners.add(fn)
 })
 
+async function openNetworkPanel () {
+  const deadline = Date.now() + 6000
+  const expr = `(async () => {
+    const l = await import('./ui/legacy/legacy.js')
+    try { l.DockController.DockController.instance().setDockSide('right') } catch {}
+    await l.InspectorView.InspectorView.instance().showPanel('network')
+    return 'network'
+  })()`
+  while (Date.now() < deadline) {
+    let front
+    try { front = (await (await fetch(`${http}/json`)).json()).find((t) => t.url.startsWith('devtools://')) } catch {}
+    if (front) {
+      try {
+        const dws = new WebSocket(front.webSocketDebuggerUrl)
+        await new Promise((res, rej) => { dws.addEventListener('open', res); dws.addEventListener('error', rej) })
+        let did = 0
+        const call = (method, params = {}) => new Promise((res, rej) => {
+          const id = ++did
+          const t = setTimeout(() => rej(new Error('devtools timeout')), 4000)
+          const onMsg = ({ data }) => {
+            const m = JSON.parse(data)
+            if (m.id !== id) return
+            dws.removeEventListener('message', onMsg); clearTimeout(t)
+            m.error ? rej(new Error(m.error.message)) : res(m.result)
+          }
+          dws.addEventListener('message', onMsg)
+          dws.send(JSON.stringify({ id, method, params }))
+        })
+        await call('Runtime.enable')
+        for (let i = 0; i < 16; i++) {
+          try {
+            const r = await call('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true })
+            if (!r.exceptionDetails) { dws.close(); return true }
+          } catch {}
+          await sleep(250)
+        }
+        dws.close()
+      } catch {}
+    }
+    await sleep(250)
+  }
+  return false
+}
+
+let networkPanel = false
+if (headful) {
+  await send('Page.enable')
+  await send('Page.bringToFront').catch(() => {})
+  networkPanel = !plan.noDevtools && !attach ? await openNetworkPanel() : false
+  if (networkPanel === false) console.log('note: could not select the DevTools Network panel')
+}
+
 await send('Runtime.enable'); await send('Page.enable'); await send('Network.enable')
 await send('Network.setCacheDisabled', { cacheDisabled: !!plan.disableCache })
 const version = await send('Browser.getVersion')
 const setViewport = (v) => send('Emulation.setDeviceMetricsOverride', { width: v.width, height: v.height, deviceScaleFactor: v.scale ?? 1, mobile: !!v.mobile })
-await setViewport(plan.viewport ?? { width: 1366, height: 900 })
+await setViewport(view)
 
 async function settle () {
   const end = Date.now() + TIMEOUT
@@ -222,12 +327,14 @@ const mouse = async (x, y) => {
   await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y })
   await send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
   await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 })
+  lastNet = Date.now() // the handler can start a request after this click, so settle counts from here
 }
 const KEYS = { Enter: 13, Tab: 9, Escape: 27, Backspace: 8, ArrowDown: 40, ArrowUp: 38, ArrowLeft: 37, ArrowRight: 39, Space: 32 }
 const key = async (k) => {
   const params = { key: k === 'Space' ? ' ' : k, code: k, windowsVirtualKeyCode: KEYS[k] ?? k.toUpperCase().charCodeAt(0), text: k === 'Enter' ? '\r' : undefined }
   await send('Input.dispatchKeyEvent', { type: 'keyDown', ...params })
   await send('Input.dispatchKeyEvent', { type: 'keyUp', ...params })
+  lastNet = Date.now() // a form submit or a shortcut can start a request
 }
 
 const resultsFile = join(out, 'results.jsonl')
@@ -348,8 +455,8 @@ async function run (step) {
   throw new Error('unknown step ' + JSON.stringify(step))
 }
 
-writeFileSync(join(out, 'run.json'), JSON.stringify({ plan: snapshotUrl ? 'snapshot' : resolve(argv[0]), origin: plan.origin, artifact: plan.artifact ?? null, browser: version.product, attach: !!attach, startedAt: new Date().toISOString() }, null, 2))
-console.log(`browser ${version.product}  origin ${plan.origin}  evidence ${out}`)
+writeFileSync(join(out, 'run.json'), JSON.stringify({ plan: snapshotUrl ? 'snapshot' : resolve(argv[0]), origin: plan.origin, artifact: plan.artifact ?? null, browser: version.product, mode: attach ? 'attached' : headful ? 'visible' : 'headless', networkPanel: networkPanel, startedAt: new Date().toISOString() }, null, 2))
+console.log(`browser ${version.product}  ${attach ? 'attached' : headful ? 'visible window' : 'headless'}  origin ${plan.origin}  evidence ${out}`)
 
 for (const unit of plan.units) {
   if (only && !only.includes(unit.name)) continue
@@ -386,7 +493,9 @@ for (const unit of plan.units) {
 }
 
 console.log(`\n${counts.pass} pass, ${counts.fail} fail, ${counts.blocked} blocked, ${counts.skipped} skipped  -> ${resultsFile}`)
+console.log(`network log: ${networkFile}`)
 ws.close()
 if (attach) await fetch(`${http}/json/close/${target.id}`).catch(() => {})
-proc?.kill()
+if (keepOpen && proc) console.log('browser stays open; close the window when you are done')
+else proc?.kill()
 process.exit(counts.fail ? 1 : counts.blocked ? 2 : 0)
